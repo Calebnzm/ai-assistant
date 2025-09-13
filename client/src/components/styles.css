@@ -1,0 +1,218 @@
+/* Task Component */
+
+.task-container {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    height: 20px;
+    margin: 0;
+    margin-top: 10px;
+    padding: 10px;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: white;
+}
+
+
+
+.task-container div input {
+    border-radius: 50%;
+}
+
+.checkbox-section {
+    width: 10%;
+}
+
+.title {
+    width: 50%;
+}
+
+.days-left-section {
+    width: 10%;
+}
+.priority-section {
+    width: 20%;
+}
+
+
+.priority {
+    color: white;
+    background-color: red;
+    padding: 5px 10px;
+    margin-right: 0px;
+    border-radius: 20px;
+}
+
+.days-left {
+    text-align: center;
+    color: black;
+    background-color: #D9D9D9;
+    padding: 5px;
+    padding-left: 2.5;
+    border-radius: 50%;
+    height: 20px;
+    width: 20px;
+    margin-right: 0;
+}
+
+
+
+.custom-checkbox input{
+    display: none;
+    position: absolute;
+    opacity: 0;
+}
+
+.custom-checkbox {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 16px;
+    user-select: none;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #D9D9D9;
+    border-radius: 50px;
+    display: inline-block;
+    position: relative;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox input:checked + .checkmark {
+    border-color: green
+}
+
+.custom-checkbox input:checked + .checkmark::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 6px;
+    height: 12px;
+    border: solid ;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+
+/*  Streak Container*/
+
+.streak-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    text-align: left;
+    margin-top: 20px;
+}
+
+.streak-header h4 {
+    margin: 0;
+    padding-left: 5px;
+    text-align: left;
+}
+
+.streak-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.streak-header img {
+    margin-right: 25px;
+}
+
+.streak-bar {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    height: 20px;
+    margin: 0;
+    margin-top: 10px;
+    padding: 10px;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: white;
+}
+
+.streak-container img {
+    height: 25px;
+    width: 25px;
+}
+
+.streak-icons {
+    display: flex;
+    justify-content: space-evenly;
+    width: 80%;
+}
+
+.streak-value {
+    display: flex;
+    justify-content: center;
+    width: 20%;
+}
+
+
+
+
+
+/*Achievement Section*/
+
+.achievement-section {
+    height: 90px;
+    width: 100%;
+    border-radius: 10px;
+    display: flex;
+    border: 1px solid #D9D9D9;
+}
+
+.icon {
+    display: flex;
+    justify-content: center;
+    height: inherit;
+    width: 80px;
+}
+
+.icon img {
+    height: 50px;
+    margin: auto;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    justify-content: center;
+    margin-left: 10px;
+}
+
+.details h3 {
+    margin: 0;
+}
+
+.details h4 {
+    margin: 0;
+    margin: 0;
+    text-align: left;
+    font-weight: 400;
+}
+
+.message-section {
+    justify-content: space-between;
+    text-align: left;
+    padding-left: 10px;
+    padding-right: 10px;
+    
+}

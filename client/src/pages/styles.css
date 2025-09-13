@@ -1,0 +1,830 @@
+/*  Auth Styles   */
+
+
+.logo-image {
+    height: 6em;
+    width: 6em;
+}
+
+.logo-section {
+    width: inherit;
+    display: flex;
+    flex-direction: column;
+    height: 45%;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px){
+    .signup {
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+        width: 90vw;
+    }
+    .logo-section div h1{
+        margin: 7.5px;
+        font-size: 20px;
+    }
+
+    .logo-section div p{
+        margin: 7.5px;
+        font-size: 15px;
+    }
+    
+    .signup div h3{
+        margin: 5px;
+        font-size: 15px;
+    }
+
+    .auth-form-labels {
+        color: black;
+        font-weight: 400;
+        font-size: 15px;
+        margin-bottom: 2.5px;
+    }
+
+    .auth-form-input {
+        border: none;
+        background-color: #f3f3f5;
+        border-radius: 5px;
+        padding-left: 5px;
+        height: 35px;
+        font-size: 15px;
+    }
+    .auth-form-input:focus {
+        outline: 2px solid #D9D9D9;
+    }
+
+    .password-input button span img {
+        height: 15px;
+        width: 15px;
+    }
+
+    .form-section {
+        display: flex;
+        flex-direction: column;
+        margin: 20px;
+        justify-content: left;
+        text-align: left;
+        
+    }
+
+
+
+}
+
+@media (min-width: 601px) {
+    .signup {
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        height: 100%;
+        width: 500px;
+    }
+    .logo-section div h1{
+        margin: 5px;
+        font-size: 40px;
+    }
+
+    .logo-section div p{
+        margin: 5px;
+        font-size: 20px;
+    }
+
+    .signup div h3{
+        margin: 5px;
+        font-size: 20px;
+    }
+
+    .auth-form-input {
+        border: none;
+        background-color: #f3f3f5;
+        border-radius: 5px;
+        padding-left: 10px;
+        height: 35px;
+        font-size: 15px;
+    }
+
+    .auth-form-input:focus {
+        outline: 2px solid #D9D9D9;
+    }
+
+    .auth-form-labels {
+        color: black;
+        font-weight: 400;
+        font-size: 20px;
+        margin-bottom: 5px;
+    }
+
+    .password-input button span img {
+        height: 20px;
+        width: 20px;
+    }
+
+    .form-section {
+        display: flex;
+        flex-direction: column;
+        margin: 30px;
+        justify-content: left;
+        text-align: left;
+        
+    }
+}
+
+
+.signup-form-section {
+    background-color: #fff;
+    border-radius: 5%;
+    border: 1px, solid, #D9D9D9;
+}
+
+
+.password-input {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input input{
+    flex: 1;
+    width: 100%;
+}
+
+.password-input button {
+    position: absolute;
+    right: 0px;
+    background: none;
+    border: none;
+    outline: none;
+}
+
+
+
+/*     Dashboard Styles       */
+
+.page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+.dashboard {
+    margin-top: 40px;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #D9D9D9;
+    padding: 0;
+    flex: 0 0;
+    position: fixed;
+    width: 100%;
+    background-color: white;
+}
+
+.flex {
+    flex: 1;
+}
+
+.top-bar h3 {
+    padding-left: 10px;
+    margin: 10px;
+}
+
+.profile-button {
+    all: unset;
+    display: inline-flex;
+    position: absolute;
+    right: 10px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    outline: none;
+    margin: 10px;
+}
+.profile-button:focus {
+    outline: none;
+}
+
+.profile-button img {
+    height: 30px;
+    width: 30px;
+    padding: 0;
+    margin: 0;
+}
+
+.date {
+    display: flex;
+    justify-content: space-evenly;
+    margin-top: 50px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    position: fixed;
+    width: 100%;
+    background-color: white;
+}
+
+.date button {
+    all: unset;
+    cursor: pointer;
+}
+
+.date button:hover {
+    background-color: rgb(177, 165, 165);
+}
+
+.date button:focus {
+    background: none;
+    outline: none;
+}
+
+.date button  h4{
+    margin: 0;
+    padding: 0;
+}
+
+.date button img {
+    height: 15px;
+    width: 15px;
+}
+
+.task-section {
+    background-color: #ffffff;
+    margin: 10px;
+    margin-top: 80px;
+    border: 1px solid #D9D9D9;
+    border-radius: 15px;
+}
+
+.task-section h3 {
+    margin: 0;
+    padding: 5px;
+}
+
+.task-section h4 {
+    margin: 0;
+    padding-left: 5px;
+    text-align: left;
+}
+
+.pending-tasks {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.completed-tasks {
+    margin-top: 20px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-bottom: 20px;
+}
+
+
+
+.habit-streak-section {
+    background-color: #ffffff;
+    margin: 10px;
+    margin-top: 30px;
+    border: 1px solid #D9D9D9;
+    border-radius: 15px;
+}
+
+.streaks {
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-bottom: 20px;
+}
+
+.summary-section {
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    padding-bottom: 20px;
+}
+
+.summary-section
+
+.summary-items {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+
+/*Profile page styles*/
+
+.profile-bar {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #D9D9D9;
+    flex: 0 0;
+    position: fixed;
+    width: 100%;
+    background-color: white;
+}
+
+.profile-bar h2 {
+    margin: 0;
+    margin-top: 10px;
+}
+
+.back-button {
+    width: 80px;
+    height: 40px;
+    background-color: #f7f6f6;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 5px;
+    margin-top: 10px;
+    padding: 10px;
+    border: none;
+    outline: none;
+}
+
+
+.back-button h4 {
+    margin: 0;
+    font-weight: 500;
+}
+
+.logout-button {
+    height: 40px;
+    background-color: #f7f6f6;
+    display: flex;
+    flex-direction: row;
+    margin: 5px;
+    margin-top: 10px;
+}
+
+.logout-button h4 {
+    margin: 0;
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.logout-button img {
+    height: 20px;
+    width: 20px;
+}
+
+.profile-section {
+    background-color: white;
+    margin: 10px;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    margin-top: 75px;
+}
+
+.profile-section h3 {
+    text-align: left;
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+.initials {
+    background-color: #D9D9D9;
+    padding: 30px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-left: 20px;
+}
+
+.initials h2 {
+    margin: 0;
+}
+
+.info {
+    display: flex;
+    flex-direction: row;
+}
+
+.name-email-section {
+    display: flex;
+    flex-direction: column;
+    margin-left: 15px;
+    margin-top: 20px;
+}
+
+.name-email-section h4 {
+    margin: 0;
+    text-align: left;
+    font-weight: 400;
+}
+
+.name-email-section h3 {
+    margin: 0;
+    text-align: left;
+    font-weight: 600;
+}
+
+.bio h4 {
+    margin: 0;
+    margin-left: 20px;
+    text-align: left;
+    font-weight: 400;
+}
+
+.edit-button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: white;
+    border: 1px solid #D9D9D9;
+    margin: 0 auto;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.edit-button img {
+    height: 20px;
+    width: 20px;
+    padding: 5px;
+}
+
+.edit-button h4 {
+    margin: 0;
+    margin-left: 5px;
+    color: black;
+}
+
+.theme  {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+}
+
+.theme h3 {
+    margin: 0;
+    margin-top: 7.5px;
+}
+
+.achievements {
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.achievement-section {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.edit-profile {
+    margin: 10px;
+    margin-top: 75px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+}
+
+.edit-profile-form {
+    text-align: left;
+    width: 80%;
+    margin-bottom: 20px;
+}
+
+.edit-profile-form-section {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+}
+
+.edit-profile-form-section input {
+    border: none;
+    background-color: #f3f3f5;
+    border-radius: 5px;
+    padding-left: 10px;
+    height: 35px;
+    font-size: 15px;
+}
+
+.edit-form-buttons {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 10px;
+}
+
+
+/*    Activity Details Page   */
+
+.previous-button {
+    display: flex;
+    margin-left: 15px;
+}
+
+
+.previous-button img {
+    height: 20px;
+    width: 20px;
+}
+
+.previous-button h4 {
+    margin: 0;
+    padding: 0;
+    margin-left: 10px;
+}
+
+.banner {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    border-bottom: 1px solid #D9D9D9;
+    position: fixed;
+    background-color: white;
+    width: 100%;
+}
+
+.banner h3 {
+    margin: 0;
+    margin-right: 150px;
+    margin-left: 10px;
+    margin-top: 10px;
+    margin-bottom: 10.5px;
+}
+
+.banner h4 {
+    margin: 0;
+    margin-left: 15px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #D9D9D9;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+
+.activity-detials-page-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 10px;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 75px;
+}
+
+.edit-activity-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    width: 80px;
+    height: 40px;
+}
+
+.edit-activity-button h4 {
+    margin: 0;
+    padding: 0;
+}
+
+.edit-activity-button img {
+    height: 20px;
+    width: 20px;
+    margin-left: 5px 
+}
+
+.activity-details {
+    display: flex;
+    flex-direction: row;
+    margin: 10px;
+    border: 1px solid #D9D9D9;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+
+.activity-description h3 {
+    margin: 0;
+    padding: 0;
+    margin-left: 20px;
+}
+
+.activity-description h4 {
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    margin-left: 20px;
+    font-weight: 500;
+}
+
+.activity-properties {
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+    border: 1px solid #D9D9D9;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.activity-properties h3 {
+    margin: 0;
+    padding: 0;
+}
+
+.activity-properties p {
+    margin: 0;
+    padding: 0;
+}
+
+.activity-properties-info ul {
+    display: flex;
+    flex-direction: column;
+    list-style-type: none;
+    margin-left: 0;
+    padding: 0;
+}
+
+.activity-properties-info ul li {
+    display: flex;
+    flex-direction: row;
+    list-style-type: none;
+    justify-content: space-between;
+    margin: 10px;
+    margin-left: 0
+}
+
+.tag-section {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    width: 100%;
+}
+
+.activity-properties-tag {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+.tag {
+    border: 1px solid #D9D9D9;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 10px;
+    background-color: #D9D9D9;
+}
+
+.activity-buttons {
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.activity-buttons h3 {
+    margin: 0;
+    margin-left: 10px;
+    text-align: left;
+}
+
+.activity-buttons button {
+    margin: 5px;
+    margin-top: 10px;
+}
+
+
+.icon-image {
+    height: 20px;
+    width: 20px;
+}
+
+
+.button {
+    display: flex;
+    justify-content: center; 
+}
+
+.button p {
+    margin: 0;
+    margin-left: 10px;
+    color: white;
+}
+
+.complete-button {
+    background-color: black;
+}
+
+
+.delete-button   {
+    background-color: red;
+}
+
+.edit-task {
+    text-align: left;
+    padding: 0;
+}
+
+.edit-activity-form {
+    margin: 10px;
+    width: 85%;
+}
+
+.edit-activity-form-section {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+}
+
+.edit-activity-form-section label {
+    margin-top: 10px;
+}
+
+.edit-activity-form-section input {
+    border: none;
+    background-color: #f3f3f5;
+    border-radius: 5px;
+    padding-left: 10px;
+    height: 35px;
+    font-size: 15px;
+}
+
+.edit-activity-form-section select {
+    border: none;
+    background-color: #f3f3f5;
+    border-radius: 5px;
+    height: 35px;
+    font-size: 15px;
+}
+
+
+
+/*Add Activity styles*/
+
+.back-button-text {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+
+/*Chat page interface*/
+.dialogue-sections {
+    margin: 10px;
+    margin-top: 50px;
+    border: 1px solid #D9D9D9;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.head-section {
+    border-bottom: 1px solid #D9D9D9;
+    position: fixed;
+    margin-top: 0px;
+    width: 90%;
+    background-color: white;
+}
+
+.head-section h3 {
+    margin: 0;
+    margin-top: 5px;
+    text-align: left;
+}
+
+.head-section h4 {
+    margin-top: 5px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.messages-section {
+    margin-top: 95px;
+    width: 100%;
+}
