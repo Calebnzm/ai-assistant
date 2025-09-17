@@ -7,10 +7,10 @@ const messages = [
     {"count": 1, "role": "user", "content": "Could you add a task for me?"},
     {"count": 2, "role": "assistant", "content": "Yes, absolutely, I can, what are the details?"},
     {"count": 3, "role": "user", "content": "I need to call  him before monday, this high priority?"},
-        {"count": 0, "role": "assistant", "content": "How can I help you today?"},
+    {"count": 0, "role": "assistant", "content": "How can I help you today?"},
     {"count": 1, "role": "user", "content": "Could you add a task for me?"},
     {"count": 2, "role": "assistant", "content": "Yes, absolutely, I can, what are the details?"},
-    {"count": 3, "role": "user", "content": "I need to call  him before monday, this high priority?"},
+    {"count": 3, "role": "user", "content": "I need to call  him before monday, this high priority? Do these messages have the correct growing attribute? It seems to be wrong what could the issue be?"},
     
 ]
 
@@ -19,8 +19,8 @@ export default function Chat() {
 
     const chatMessages = messages.map((message) => {
         if (message.role === "user")
-        return <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start"}}><ChatMessage key={message.count} message={message}/></div>
-        return <div style={{display: "flex", flexDirection: "row", alignItems: "flex-start"}}><ChatMessage key={message.count} message={message}/></div>
+        return <div style={{display: "flex", alignItems: "flex-start", maxWidth: "80vw", flexDirection: "row", alignSelf: "flex-end"}}><ChatMessage key={message.count} message={message}/></div>
+        return <div style={{display: "flex", alignItems: "flex-start", maxWidth: "80vw", flexDirection: "row-reverse", alignSelf: "flex-start"}}><ChatMessage key={message.count} message={message}/></div>
     })
 
 
@@ -48,6 +48,18 @@ export default function Chat() {
                     </div>
                     <div className="messages-section">
                         {chatMessages}
+                    </div>
+                    <div className="chat-input">
+                        <div className="file-input">
+                            <textarea name="" id=""></textarea>
+                            <input type="file" id="fileInput"/>
+                            <label htmlFor="fileInput" id="file-input-label">
+                                <img src="upload-file.png" alt="upload" />
+                            </label>
+                        </div>
+                        <button>
+                            <img src="send-message.png" alt="Send" />
+                        </button>
                     </div>
                 </div>
             </div>

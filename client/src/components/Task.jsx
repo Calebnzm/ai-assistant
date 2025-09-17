@@ -1,19 +1,24 @@
 import "./styles.css"
 
-export default function TaskBar({ task }) {
+export default function TaskBar({ task, updateTaskStatus, openTaskDetails }) {
 
     const priorityColors = {
         "high": 'red',
         "low": 'orange'
     }
 
+    const handleStatusChange = () => {
+        const newStatus = task.status === "completed" ? "pending" : "completed";
+        updateTaskStatus(task.id, newStatus)
+    }
+
 
     return (
         <>
-            <div className="task-container">
-                <div className="checkbox-section">
+            <div className="task-container" onClick={() => openTaskDetails(task.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openTaskDetails(task.id)}>
+                <div className="checkbox-section" onClick={(e) => e.stopPropagation()}>
                     <label className="custom-checkbox">
-                        {task.status === "completed" ? (<input type="checkbox" checked/>) : (<input type="checkbox" />)}
+                        {task.status === "completed" ? (<input type="checkbox" defaultChecked onChange={handleStatusChange}/>) : (<input type="checkbox" onChange={handleStatusChange}/>)}
                         <span className="checkmark"></span>
                     </label>
                 </div>

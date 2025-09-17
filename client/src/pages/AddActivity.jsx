@@ -30,74 +30,76 @@ export default function AddActivity() {
                             <img src="profile-user.png" alt="user" />
                         </button>
                 </div>
-                <div className='edit-profile edit-task'>
-                    <form action="" className='edit-activity-form'>
-                        <div className='edit-profile-form-sections'>
-                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Title</label>
-                                <input type="text" placeholder={task.name}/>
+                <div className="activity-details-page">
+                    <div className='edit-profile edit-task'>
+                        <form action="" className='edit-activity-form'>
+                            <div className='edit-profile-form-sections'>
+                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Title</label>
+                                    <input type="text" placeholder="Enter the title of the activity"/>
+                                </div>
+                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Description</label>
+                                    <textarea name="" id="" placeholder="Enter a description of the task"></textarea>
+                                </div>
+                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Type</label>
+                                    <select name="" id="" defaultValue={"task"}>
+                                        <option value="task">Task</option>
+                                        <option value="habit">Habit</option>
+                                        <option value="project">Project</option>
+                                    </select>
+                                </div>
+                                {(task.is_habit || task.is_project) ? (
+                                                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Frequency</label>
+                                    <select name="" id="" defaultValue={"task"}>
+                                        <option value="task">Everyday</option>
+                                        <option value="habit">Every Weekday</option>
+                                        <option value="project">Every Monday</option>
+                                        <option value="project">Every Teusday</option>
+                                        <option value="project">Every Wednesday</option>
+                                        <option value="project">Every Thursday</option>
+                                        <option value="project">Every Friday</option>
+                                        <option value="project">Every Saturday</option>
+                                        <option value="project">Every Sunday</option>
+                                    </select>
+                                </div>
+                                ): (
+                                    <></>
+                                )}
+                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Priority</label>
+                                    <select name="" id="" defaultValue={"low"}>
+                                        <option value="high">High</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Due Date</label>
+                                    <input type="date"/>
+                                </div>
+                                <div className="edit-activity-form-section">
+                                    <label htmlFor="">Tags (comma seperated)</label>
+                                    <input type="text" placeholder={"tag1, tag2, tag3"}/>
+                                </div>
                             </div>
-                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Description</label>
-                                <input type="text" placeholder={task.description}/>
-                            </div>
-                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Type</label>
-                                <select name="" id="" defaultValue={"task"}>
-                                    <option value="task">Task</option>
-                                    <option value="habit">Habit</option>
-                                    <option value="project">Project</option>
-                                </select>
-                            </div>
-                            {(task.is_habit || task.is_project) ? (
-                                                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Frequency</label>
-                                <select name="" id="" defaultValue={"task"}>
-                                    <option value="task">Everyday</option>
-                                    <option value="habit">Every Weekday</option>
-                                    <option value="project">Every Monday</option>
-                                    <option value="project">Every Teusday</option>
-                                    <option value="project">Every Wednesday</option>
-                                    <option value="project">Every Thursday</option>
-                                    <option value="project">Every Friday</option>
-                                    <option value="project">Every Saturday</option>
-                                    <option value="project">Every Sunday</option>
-                                </select>
-                            </div>
-                            ): (
-                                <></>
-                            )}
-                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Priority</label>
-                                <select name="" id="" defaultValue={"low"}>
-                                    <option value="high">High</option>
-                                    <option value="low">Low</option>
-                                </select>
-                            </div>
-                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Due Date</label>
-                                <input type="date" placeholder={task.due_date}/>
-                            </div>
-                            <div className="edit-activity-form-section">
-                                <label htmlFor="">Tags (comma seperated)</label>
-                                <input type="text" placeholder={"tag1, tag2, tag3"}/>
-                            </div>
-                        </div>
 
-                    </form>
-                    <div className="edit-form-buttons">
-                        <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
-                            <img src="save.svg" alt="user" />
-                            <h4>
-                                Save
-                            </h4>
-                        </button>
-                        <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
-                            <img src="cancel.svg" alt="user" />
-                            <h4>
-                                Cancel
-                            </h4>
-                        </button>
+                        </form>
+                        <div className="edit-form-buttons">
+                            <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
+                                <img src="save.svg" alt="user" />
+                                <h4>
+                                    Save
+                                </h4>
+                            </button>
+                            <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
+                                <img src="cancel.svg" alt="user" />
+                                <h4>
+                                    Cancel
+                                </h4>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -15,6 +15,15 @@
     flex-shrink: 0;
 }
 
+.signup-page {
+    height: 100%;
+    width: 100vw;
+    margin: 0 auto;
+    display: flex;
+    text-align: center;
+    justify-content: center;
+}
+
 @media (max-width: 600px){
     .signup {
         background-color: white;
@@ -58,7 +67,7 @@
         outline: 2px solid #D9D9D9;
     }
 
-    .password-input button span img {
+    .password-input button img {
         height: 15px;
         width: 15px;
     }
@@ -120,7 +129,7 @@
         margin-bottom: 5px;
     }
 
-    .password-input button span img {
+    .password-input button img {
         height: 20px;
         width: 20px;
     }
@@ -145,8 +154,9 @@
 
 .password-input {
     position: relative;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
 }
 
@@ -170,17 +180,92 @@
 .page {
     display: flex;
     flex-direction: column;
+    align-items: center;
     height: 100vh;
     width: 100vw;
 }
 
-.dashboard {
-    margin-top: 40px;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    flex-direction: column;
-    background-color: white;
+
+
+@media ( max-width: 700px) {
+    .task-section {
+        background-color: #ffffff;
+        margin: 10px;
+        margin-top: 80px;
+        border: 1px solid #D9D9D9;
+        border-radius: 15px;
+    }
+    .dashboard {
+        margin-top: 80px;
+        height: 100vh;
+        width: 100vw;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+        background-color: white;
+    }
+    .habit-streak-section {
+        background-color: #ffffff;
+        margin: 10px;
+        margin-top: 30px;
+        border: 1px solid #D9D9D9;
+        border-radius: 15px;
+    }
+}
+
+@media (min-width: 701px) and (max-width: 999px) {
+    .task-section {
+        background-color: #ffffff;
+        margin: 10px;
+        margin-top: 80px;
+        border: 1px solid #D9D9D9;
+        border-radius: 15px;
+    }
+    .dashboard {
+        margin-top: 80px;
+        height: 100vh;
+        width: 60vw;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+        background-color: white;
+    }
+    .habit-streak-section {
+        background-color: #ffffff;
+        margin: 10px;
+        margin-top: 30px;
+        border: 1px solid #D9D9D9;
+        border-radius: 15px;
+    }
+}
+
+@media (min-width: 1000px) {
+    .dashboard {
+        height: 100vh;
+        width: 80%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        /* grid-template-rows: auto auto; */
+        background-color: white;
+        margin-top: 150px;
+        row-gap: 0;
+        grid-auto-rows: min-content;
+    }
+    .habit-streak-section {
+        background-color: #ffffff;
+        margin: 10px;
+        border: 1px solid #D9D9D9;
+        border-radius: 10px;
+        height: auto;
+        align-self: start;
+    }
+    .task-section {
+        background-color: #ffffff;
+        margin: 10px;
+        border: 1px solid #D9D9D9;
+        border-radius: 10px;
+        align-self: start;
+    }
 }
 
 .top-bar {
@@ -261,13 +346,7 @@
     width: 15px;
 }
 
-.task-section {
-    background-color: #ffffff;
-    margin: 10px;
-    margin-top: 80px;
-    border: 1px solid #D9D9D9;
-    border-radius: 15px;
-}
+
 
 .task-section h3 {
     margin: 0;
@@ -294,13 +373,7 @@
 
 
 
-.habit-streak-section {
-    background-color: #ffffff;
-    margin: 10px;
-    margin-top: 30px;
-    border: 1px solid #D9D9D9;
-    border-radius: 15px;
-}
+
 
 .streaks {
     padding-left: 10px;
@@ -322,6 +395,8 @@
 .summary-items {
     display: flex;
     justify-content: space-evenly;
+    background-color: rgb(226, 221, 221);
+    border-radius: 10px;
 }
 
 
@@ -337,6 +412,46 @@
     width: 100%;
     background-color: white;
 }
+
+@media (max-width: 1000px) {
+    .achievements {
+        margin: 10px;
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        border: 1px solid #D9D9D9;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+}
+
+
+@media (min-width: 800px) {
+    .profile-page {
+        width: 80%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto auto;
+    }
+
+    .one { grid-column: 1; grid-row: 1}
+    .two { grid-column: 1; grid-row: 2}
+    .three { grid-column: 2; grid-row: 1}
+
+    .achievements {
+        margin: 10px;
+        margin-top: 75px;
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        border: 1px solid #D9D9D9;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+}
+
 
 .profile-bar h2 {
     margin: 0;
@@ -478,16 +593,7 @@
     margin-top: 7.5px;
 }
 
-.achievements {
-    margin: 10px;
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-    border: 1px solid #D9D9D9;
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 20px;
-}
+
 
 .achievement-section {
     margin-top: 10px;
@@ -502,6 +608,7 @@
     align-items: center;
     border: 1px solid #D9D9D9;
     border-radius: 10px;
+    height: auto;
 }
 
 .edit-profile-form {
@@ -540,6 +647,19 @@
     margin-left: 15px;
 }
 
+@media(min-width: 600px) {
+    .activity-details-page {
+        width: 60vw;
+        height: 100%;
+    }
+}
+
+@media(max-width: 600px) {
+    .activity-details-page {
+        width: 100vw;
+    }
+}
+
 
 .previous-button img {
     height: 20px;
@@ -564,13 +684,14 @@
 
 .banner h3 {
     margin: 0;
-    margin-right: 150px;
+    margin-right: 45vw;
     margin-left: 10px;
     margin-top: 10px;
     margin-bottom: 10.5px;
 }
 
-.banner h4 {
+
+.activity-detials-page-buttons h3 {
     margin: 0;
     margin-left: 15px;
     margin-top: 10px;
@@ -622,6 +743,9 @@
     border-radius: 10px;
 }
 
+.activity-description {
+    text-align: left;
+}
 
 .activity-description h3 {
     margin: 0;
@@ -739,6 +863,9 @@
     background-color: black;
 }
 
+.complete-button img {
+    border-radius: 50%;
+}
 
 .delete-button   {
     background-color: red;
@@ -773,6 +900,15 @@
     font-size: 15px;
 }
 
+.edit-activity-form-section textarea{
+    border: none;
+    background-color: #f3f3f5;
+    border-radius: 5px;
+    padding: 10px;
+    height: 50px;
+    font-size: 15px;
+}
+
 .edit-activity-form-section select {
     border: none;
     background-color: #f3f3f5;
@@ -795,36 +931,109 @@
 /*Chat page interface*/
 .dialogue-sections {
     margin: 10px;
-    margin-top: 50px;
-    border: 1px solid #D9D9D9;
+    margin-top: 40px;
     border-radius: 10px;
     padding: 10px;
+    padding-top: 15px;
     display: flex;
     flex-direction: column;
+    align-items: center;
     background-color: white;
 }
 
 .head-section {
     border-bottom: 1px solid #D9D9D9;
+    border-top: 1px solid #D9D9D9;
     position: fixed;
     margin-top: 0px;
-    width: 90%;
+    width: 100%;
     background-color: white;
+    text-align: center;
 }
 
 .head-section h3 {
     margin: 0;
     margin-top: 5px;
-    text-align: left;
 }
 
 .head-section h4 {
     margin-top: 5px;
-    text-align: left;
     font-weight: 500;
 }
 
 .messages-section {
     margin-top: 95px;
+    margin-bottom: 100px;
+    width: 95vw;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-input {
+    margin: 0;
+    padding: 0;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    position: fixed;
     width: 100%;
+    box-sizing: border-box;
+    bottom: 0;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-right: 5%;
+    padding-left: 5%;
+    background-color: white;
+    align-items: center;
+}
+
+.chat-input button {
+    height: 40px;
+    border: none;
+    outline: none;
+    background: none;
+    padding-left: 0;
+    padding-top: 0;
+}
+
+.chat-input button img {
+    width: 40px;
+    height: 40px;
+}
+
+.chat-input textarea {
+    height: 40px;
+    width: 100%;
+    border: none;
+    background-color: #D9D9D9;
+    border-radius: 5px;
+    padding: 10px;
+    outline: none;
+}
+
+.file-input {
+    margin: 5px;
+    margin-left: 0;
+    margin-right: auto;
+    height: 80px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: #D9D9D9;
+    border-radius: 5px;
+    border-left: none;
+    margin-right: 10px;
+}
+
+.file-input input {
+    display: none;
+    margin-right: 5px;
+}
+
+.file-input img{
+    height: 40px;
+    width: 40px;
+    margin-right: 5px;
 }

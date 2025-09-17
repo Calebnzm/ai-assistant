@@ -1,22 +1,49 @@
 /* Task Component */
 
-.task-container {
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-evenly;
-    border: 1px solid #D9D9D9;
-    border-radius: 10px;
-    height: 20px;
-    margin: 0;
-    margin-top: 10px;
-    padding: 10px;
-    padding-left: 0;
-    padding-right: 0;
-    background-color: white;
+@media (max-width: 800px) {
+    .task-container {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-evenly;
+        border: 1px solid #D9D9D9;
+        border-radius: 10px;
+        height: auto;
+        margin: 0;
+        margin-top: 10px;
+        padding: 10px;
+        padding-left: 0;
+        padding-right: 0;
+        background-color: white;
+        cursor: pointer;
+    }
 }
 
+@media (min-width: 800px) {
+    .task-container {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #D9D9D9;
+        border-radius: 10px;
+        height: auto;
+        margin: 0;
+        margin-top: 10px;
+        padding: 10px;
+        padding-left: 0;
+        padding-right: 0;
+        background-color: white;
+        cursor: pointer;
+    }
+}
+
+
+.task-container button {
+    display: none;
+}
 
 
 .task-container div input {
@@ -29,6 +56,11 @@
 
 .title {
     width: 50%;
+}
+
+.title h4 {
+    margin: 0;
+    padding: 0;
 }
 
 .days-left-section {
@@ -62,13 +94,15 @@
 
 
 .custom-checkbox input{
-    display: none;
-    position: absolute;
-    opacity: 0;
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
 }
 
 .custom-checkbox {
-    position: relative;
+    position: static;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
@@ -127,8 +161,14 @@
 }
 
 .streak-header img {
-    margin-right: 25px;
+    margin-right: 7.5%;
 }
+
+/* @media (min-width: 800px) {
+    .streak-header img {
+        margin-right: 70px;
+    }
+} */
 
 .streak-bar {
     width: 100%;
@@ -146,6 +186,8 @@
     padding-right: 0;
     background-color: white;
 }
+
+
 
 .streak-container img {
     height: 25px;
@@ -212,7 +254,26 @@
 .message-section {
     justify-content: space-between;
     text-align: left;
+    padding: 10px;
+    height: auto;
+}
+
+
+/*Error message pop up*/
+
+.error-message {
+    height: auto;
+    width: auto;
+    border-radius: 10px;
+    display: flex;
+    border: 1px solid red;
+    text-align: left;
+}
+
+.error-message h4 {
+    padding: 5px;
+    margin: 0;
     padding-left: 10px;
     padding-right: 10px;
-    
+    color: red;
 }
