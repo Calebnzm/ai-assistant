@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from "axios";
 import './styles.css';
 
 import ErroMessage from '../components/ErrorMessage.jsx'
 
 export default function Auth() {
-    const [hasAccount, setHasAccount] = useState(false)
+    const [hasAccount, setHasAccount] = useState(true)
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [formData, setFormData] = useState ({
@@ -16,9 +17,13 @@ export default function Auth() {
         selectedPassword: "",
         confirmedPassword: ""
     })
+    const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-
+    const signupUrl = "http://127.0.0.1:8000/api/auth/register/"
+    const loginUrl = "http://127.0.0.1:8000/api/auth/login/"
     const navigate = useNavigate();
+
+
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -31,25 +36,18 @@ export default function Auth() {
     const validate = () => {
         const newErrors = {};
 
-        if (!formData.fname.trim()) {
-            newErrors.fname = "Name is requried"
-        }
-
-        if (!formData.lname.trim()) {
-            newErrors.lname = "Name is required"
-        }
-
-        if (!formData.email.trim()) {
-            newErrors.email = "Email is required"
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = "Email provided is not valid"
-        }
-
-        if (hasAccount && !formData.password.trim()) {
-            newErrors.password = "Password is required"
-        } 
-        
-        if (!hasAccount) {
+        if(!hasAccount) {
+            if (!formData.fname.trim()) {
+                newErrors.fname = "Name is requried"
+            }
+            if (!formData.lname.trim()) {
+                newErrors.lname = "Name is required"
+            }
+            if (!formData.email.trim()) {
+                newErrors.email = "Email is required"
+            } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+                newErrors.email = "Email provided is not valid"
+            }
             if (!formData.selectedPassword.trim()) {
                 newErrors.selectedPassword = "Choose a password"
             } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(formData.selectedPassword)) {
@@ -61,27 +59,87 @@ export default function Auth() {
             if (formData.selectedPassword.toString() !== formData.confirmedPassword.toString()) {
                 newErrors.confirmedPassword = "Password does not match selected password"
             }
+        } else {
+            if (hasAccount && !formData.password.trim()) {
+                newErrors.password = "Password is required"
+            } 
+            if (!formData.email.trim()) {
+                newErrors.email = "Email is required"
+            } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+                newErrors.email = "Email provided is not valid"
+            }
         }
-
         return newErrors;
     }
 
     const handleSubmit = (e) => {
-        e.preventDefault();
-        const validationErrors = validate();
-        
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors)
-        } else {
-            setErrors({})
-            alert("Valid input")
-            navigate("/dashboard")
-        }
+    e.preventDefault();
+    const validationErrors = validate();
+
+    if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        setLoading(false);
+        return; // stop here
     }
+
+    setLoading(true);
+
+    if (!hasAccount) {
+        const user = {
+        first_name: formData.fname,
+        last_name: formData.lname,
+        email: formData.email,
+        password: formData.selectedPassword,
+        };
+
+        axios.post(signupUrl, user)
+        .then(() => {
+            alert("Succesfully Signed up. Kindly log in.");
+            setHasAccount(true);
+            setErrors({}); // clear old errors on success
+        })
+        .catch(error => {
+            if (error.response?.data) {
+            const messages = Object.values(error.response.data)
+                .map(val => Array.isArray(val) ? val.join(" ") : val)
+                .join(" | ");
+            setErrors({ signup: messages }); // only set auth errors here
+            }
+        })
+        .finally(() => setLoading(false));
+
+    } else {
+        const user_info = {
+        email: formData.email,
+        password: formData.password,
+        };
+
+        axios.post(loginUrl, user_info)
+        .then(response => {
+            localStorage.setItem("access", response.data.access);
+            localStorage.setItem("refresh", response.data.refresh);
+            alert("Succesfully logged in.");
+            setErrors({});
+            navigate("/dashboard");
+        })
+        .catch(error => {
+            if (error.response?.data) {
+            const messages = Object.values(error.response.data)
+                .map(val => Array.isArray(val) ? val.join(" ") : val)
+                .join(" | ");
+            setErrors({ login: messages });
+            }
+        })
+        .finally(() => setLoading(false));
+    }
+    };
+
+
+
 
     return (
         <>
-            <div className='signup-page'>
+            <div className={`signup-page ${loading ? "disabled": ""}`}>
                 <div className='signup'>
                     <div className='logo-section'>
 
@@ -120,6 +178,7 @@ export default function Auth() {
                                 ) : (
                                     <>
                                         <div className='form-section'>
+                                            {errors.signup ? <ErroMessage message={errors.signup}/> : <></>}
                                             {errors.fname ? <ErroMessage message={errors.fname}/> : <></>}
                                             <label className='auth-form-labels'>First Name:</label>
                                             <input className='auth-form-input' placeholder='Enter your First Name' value={formData.fname} onChange={handleInputChange} name='fname' type='text'/>
@@ -133,6 +192,7 @@ export default function Auth() {
                                 )}
                                 
                                 <div className='form-section'>
+                                    {errors.login ? <ErroMessage message={errors.login}/> : <></>}
                                     {errors.email ? <ErroMessage message={errors.email}/> : <></>}
                                     <label className='auth-form-labels'>Email:</label>
                                     <input className='auth-form-input' placeholder='Enter your email address' type='text' name='email' value={formData.email} onChange={handleInputChange}/>
@@ -204,14 +264,13 @@ export default function Auth() {
                                 )}
                                 
                                 <div className='form-section'>
-                                    <button style={{backgroundColor: "#000000", color: 'white'}} type='submit'>
+                                    <button className='signup-button' style={{backgroundColor: "#000000", color: 'white'}} type='submit'>
                                         {hasAccount ? (
-                                            <>Sign In</>
+                                            <>{loading ? <div className="spinner"></div> : "Log In"}</>
                                             
                                         ) : (
-                                            <>Create Account</>
+                                            <>{loading ? <div className="spinner"></div> : "Sign Up"}</>
                                         )}
-                                        
                                     </button>
                                 </div>
                             </div>

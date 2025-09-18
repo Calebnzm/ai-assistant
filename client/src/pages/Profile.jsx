@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
 import Achievement from "../components/Achievement"
 import "./styles.css"
+import api from "../api"
 
 const user_profile = {
     "first_name" : "Rampage",
@@ -17,6 +18,8 @@ const user_profile = {
 export default function Profile() {
     const [darkMode, setDarkMode] = useState(false)
     const [editing, setEditing] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [userProfile, setUserProfile] = useState({})
     const [editFormData, setEditFormData] = useState ({
         fname: "",
         lname: "",
@@ -25,9 +28,30 @@ export default function Profile() {
         bio: "",
     });
 
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchInfo = async () => {
+          try {
+            const response = await api.get(`/auth/profile/`);
+            console.log("Fetched Info", response)
+            setUserProfile(response.data)
+            console.log("INfo", userProfile)
+          } catch (error) {
+            console.error(error)
+          }
+        };
+        fetchInfo();
+        return () => {
+          mounted = false; 
+        };
+    }, []);
+
+    useEffect(() => {
+      console.log("Fetched info:", userProfile);
+    }, [userProfile]);
     const navigate = useNavigate();
 
-    const [userProfile, setUserProfile] = useState(user_profile)
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -37,7 +61,7 @@ export default function Profile() {
         });
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         const updates = {};
@@ -51,14 +75,23 @@ export default function Profile() {
         console.log(updates)
 
         if (Object.keys(updates).length > 0) {
+            try {
+            const response = await api.patch(`/auth/profile/`, updates);
+
             setUserProfile((prevInfo) => ({
                 ...prevInfo,
-                ...updates
+                ...response.data,
             }));
-            console.log(userProfile)
+
             alert("Profile information updated");
+            } catch (error) {
+            console.error("Error updating profile:", error);
+            alert("Failed to update profile");
+            }
         }
-        setEditing(!editing)
+
+        setEditing(false);
+        setLoading(false);
     }
 
     const initials = user_profile.first_name.charAt(0).toUpperCase() + user_profile.last_name.charAt(0).toUpperCase()
@@ -66,6 +99,12 @@ export default function Profile() {
     const achievementBars = user_profile.achievements.map((info, index) => {
         return <Achievement key={index} achievement={info}/>
     })
+
+    const logOut = () => {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        window.location.href = "/";
+    }
 
 
     return (
@@ -77,7 +116,7 @@ export default function Profile() {
                         <h4>Back</h4>
                     </button>
                     <h2>Profile</h2>
-                    <button className="logout-button" onClick={() => navigate("/")}>
+                    <button className="logout-button" onClick={logOut}>
                         <img src="logout.png" alt="user" />
                         <h4>Logout</h4>
                     </button>
@@ -112,9 +151,7 @@ export default function Profile() {
                                         <div className="edit-form-buttons">
                                             <button className="edit-button" type="sumbit">
                                                 <img src="save.svg" alt="user" />
-                                                <h4>
-                                                    Save
-                                                </h4>
+                                                <>{loading ? <div className="spinner"></div> : "Save"}</>
                                             </button>
                                             <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
                                                 <img src="cancel.svg" alt="user" />
@@ -156,10 +193,8 @@ export default function Profile() {
                                         </div>
                                     </div>
                                 <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
-                                    <img src="light_user.png" alt="user" />
-                                    <h4>
-                                        Edit
-                                    </h4>
+                                    <img src="edit.png" alt="user" />
+                                    <h4>Edit</h4>
                                 </button>
                             </div>
                         )}

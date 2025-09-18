@@ -2,243 +2,72 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StreakBar from "../components/StreakBar";
 import TaskBar from "../components/Task";
+import api from "../api.js";
 import './styles.css';
 
 
-const users_data = [
-  {
-    "user_name": "Rampage",
-    "tasks": [
-      {
-        "id": 1,
-        "title": "Submit Sales Report",
-        "status": "pending",
-        "days_remaining": 2,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      },
-      {
-        "id": 2,
-        "title": "5K Run",
-        "status": "completed",
-        "days_remaining": 2,
-        "priority": "low",
-        "is_habit": 1,
-        "is_project": 0,
-        "streak": [[1, 1, 1, 1, 1, 1, 1], 89]
-      },
-      {
-        "id": 3,
-        "title": "Build my own db",
-        "status": "completed",
-        "days_remaining": 2,
-        "priority": "low",
-        "is_habit": 0,
-        "is_project": 1,
-        "streak": [[1, 1, 1, 1, 1, 1, 1], 89]
-      }
-    ],
-    "productivity": 26,
-    "active_streaks": 1,
-    "missed_tasks": 24,
-    "date": new Date("2025-09-17")
-  },
-  {
-    "user_name": "Rampage",
-    "tasks": [
-      {
-        "id": 1,
-        "title": "Finish Budget Draft",
-        "status": "completed",
-        "days_remaining": 1,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      },
-      {
-        "id": 2,
-        "title": "Morning Yoga",
-        "status": "completed",
-        "days_remaining": 1,
-        "priority": "medium",
-        "is_habit": 1,
-        "is_project": 0,
-        "streak": [[1, 1, 1, 1, 1, 1, 0], 90]
-      },
-      {
-        "id": 3,
-        "title": "Write API Docs",
-        "status": "pending",
-        "days_remaining": 3,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      }
-    ],
-    "productivity": 32,
-    "active_streaks": 2,
-    "missed_tasks": 20,
-    "date": new Date("2025-09-18")
-  },
-  {
-    "user_name": "Rampage",
-    "tasks": [
-      {
-        "id": 1,
-        "title": "Team Meeting",
-        "status": "completed",
-        "days_remaining": 0,
-        "priority": "medium",
-        "is_habit": 0,
-        "is_project": 0
-      },
-      {
-        "id": 2,
-        "title": "Read 10 Pages",
-        "status": "completed",
-        "days_remaining": 0,
-        "priority": "low",
-        "is_habit": 1,
-        "is_project": 0,
-        "streak": [[1, 1, 1, 1, 1, 0, 1], 91]
-      },
-      {
-        "id": 3,
-        "title": "Design Homepage UI",
-        "status": "pending",
-        "days_remaining": 4,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      }
-    ],
-    "productivity": 40,
-    "active_streaks": 2,
-    "missed_tasks": 18,
-    "date": new Date("2025-09-19")
-  },
-  {
-    "user_name": "Rampage",
-    "tasks": [
-      {
-        "id": 1,
-        "title": "Update Resume",
-        "status": "pending",
-        "days_remaining": 2,
-        "priority": "medium",
-        "is_habit": 0,
-        "is_project": 0
-      },
-      {
-        "id": 2,
-        "title": "Meditation",
-        "status": "completed",
-        "days_remaining": 2,
-        "priority": "low",
-        "is_habit": 1,
-        "is_project": 0,
-        "streak": [[1, 0, 1, 1, 1, 1, 1], 92]
-      },
-      {
-        "id": 3,
-        "title": "Backend Refactor",
-        "status": "completed",
-        "days_remaining": 1,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      }
-    ],
-    "productivity": 37,
-    "active_streaks": 3,
-    "missed_tasks": 16,
-    "date": new Date("2025-09-20")
-  },
-  {
-    "user_name": "Rampage",
-    "tasks": [
-      {
-        "id": 1,
-        "title": "Weekly Review",
-        "status": "completed",
-        "days_remaining": 0,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      },
-      {
-        "id": 2,
-        "title": "Evening Walk",
-        "status": "completed",
-        "days_remaining": 0,
-        "priority": "low",
-        "is_habit": 1,
-        "is_project": 0,
-        "streak": [[1, 1, 1, 1, 0, 1, 1], 93]
-      },
-      {
-        "id": 3,
-        "title": "Launch Landing Page",
-        "status": "pending",
-        "days_remaining": 5,
-        "priority": "high",
-        "is_habit": 0,
-        "is_project": 0
-      }
-    ],
-    "productivity": 45,
-    "active_streaks": 3,
-    "missed_tasks": 15,
-    "date": new Date("2025-09-21")
-  }
-];
-
-
 export default function Dashboard() {
-    const [i, setI] = useState(0);
-    const user_data = users_data[i]
-
-    const [info, setInfo] = useState(users_data[i]);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [info, setInfo] = useState([]);
+    const [summary, setSummary] = useState({})
+    
+    useEffect(() => {
+        let mounted = true;
+        const fetchInfo = async () => {
+          const dateStr = selectedDate.toISOString().split("T")[0];
+          try {
+            const response = await api.get(`/tasks/?date=${dateStr}`);
+            console.log("Fetched Info", response)
+            setInfo(response.data.tasks)
+            setSummary(response.data.summary)
+            console.log("INfo", info)
+          } catch (error) {
+            console.error(error)
+          }
+        };
+        fetchInfo();
+        return () => {
+          mounted = false; 
+        };
+    }, [selectedDate]);
 
     useEffect(() => {
-        setInfo(users_data[i]);
-    }, [i]);
+      console.log("Fetched info:", info);
+    }, [info]);
 
-    const date = new Date()
     const navigate = useNavigate()
+    
+    const updateTaskStatus = async (id) => {
+    try {
+        setInfo((prevInfo) =>
+            prevInfo.map((task) =>
+                task.id === id ? { ...task, is_completed: !task.is_completed } : task
+            )
+        );
 
+        const task = info.find((t) => t.id === id);
+        if (!task) return;
 
-    const updateTaskStatus = (id, newStatus) => {
-        console.log(id, newStatus)
-        setInfo((prevInfo) => ({
-            ...prevInfo,
-            tasks: prevInfo.tasks.map((task) => 
-                task.id === id ? { ...task, status: newStatus } : task
-            ),
-        }))
+        await api.patch(`/tasks/${id}/`, {
+        is_completed: !task.is_completed,
+        });
+    } catch (error) {
+        console.error("Error updating task status:", error);
     }
+    };
+
 
     const openTaskDetails = (id) => {
         navigate(`/activityDetails/${id}`)
     }
 
-    const previousDay = () => {
-        if(i > 0) {
-            setI(i - 1);   
-        }
-        console.log(i)
-    }
 
-    const nextDay = () => {
-        if(i < 4) {
-            setI(i + 1);   
-        }
-        console.log(i)
-    }
 
-    const pendingTaskElements = info.tasks
-    .filter(task => task.status === "pending")
+    const previousDay = () => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() - 1)));
+
+    const nextDay = () => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() + 1)));
+
+    const pendingTaskElements = info.filter(task => !task.is_completed)
     .map(task => (
         <TaskBar
         key={task.id}
@@ -248,8 +77,7 @@ export default function Dashboard() {
         />
     ));
 
-    const completedTaskElements = info.tasks
-    .filter(task => task.status === "completed")
+    const completedTaskElements = info.filter(task  => task.is_completed)
     .map(task => (
         <TaskBar
         key={task.id}
@@ -259,24 +87,54 @@ export default function Dashboard() {
         />
     ));
 
-    const habitStreaks = info['tasks'].map((task, index) => {
-        if (task.is_habit === 1)
+    const missedTaskElements = info
+    .filter(task => {
+        if (!task.completion_date) return false; // skip tasks not completed
+
+        const dueDate = new Date(task.due_date);
+        const completionDate = new Date(task.completion_date);
+        const today = new Date(); // current date/time
+
+        return completionDate > dueDate && completionDate > today;
+    })
+    .sort((a, b) => new Date(a.completion_date) - new Date(b.completion_date)) // optional sorting
+    .map(task => (
+        <TaskBar
+        key={task.id}
+        task={task}
+        updateTaskStatus={updateTaskStatus}
+        openTaskDetails={openTaskDetails}
+        />
+    ));
+
+    const habitStreaks = info.map((task, index) => {
+        if (task.type === "habit")
         return <StreakBar key={index} task={task} />
     })
 
-    const projectStreaks = info['tasks'].map((task, index) => {
-        if (task.is_project === 1)
+    const projectStreaks = info.map((task, index) => {
+        if (task.type === "project")
         return <StreakBar key={index} task={task} />
     })
 
-
-    
 
     return (
         <>
             <div className="page">
+                <div className="add-chat-buttons">
+                  <div className="add-button">
+                    <button onClick={() => navigate("/addActivity")}>
+                      <img src="add.png" alt="Add" />
+                    </button>
+                  </div>
+                  <div className="add-button">
+                    <button>
+                      <img src="chat-assistant.png" alt="Add" />
+                    </button>
+                  </div>
+                </div>
                 <div className="top-bar">
-                    <h3>Hey, {info.user_name}</h3>
+                    <h3>Hey, {summary.user_name}</h3>
                     <button className="profile-button" onClick={() => navigate("/profile")}>
                         <img src="profile-user.png" alt="user" />
                     </button>
@@ -286,8 +144,8 @@ export default function Dashboard() {
                         <img src="left-arrow.png" alt="previous" />
                     </button>
                     <button>
-                        <h4>{date.toLocaleDateString()}</h4>
-                        <input style={{display: "none"}} type="date" value={date.toISOString().split("T")[0]}/>
+                        <h4>{selectedDate.toLocaleDateString()}</h4>
+                        <input style={{display: "none"}} type="date" defaultValue={selectedDate.toISOString().split("T")[0]}/>
                     </button>
 
                     <button onClick={nextDay}>
@@ -301,14 +159,19 @@ export default function Dashboard() {
                         </div>
 
                         <div className="pending-tasks">
-                            {pendingTaskElements.length > 0 && <h4>Pending</h4>}
+                            {pendingTaskElements?.length > 0 && <h4>Pending</h4>}
                             {pendingTaskElements}
                         </div>
 
                         
                         <div className="completed-tasks">
-                            {completedTaskElements.length > 0 && <h4>Completed</h4>}
+                            {completedTaskElements?.length > 0 && <h4>Completed</h4>}
                             {completedTaskElements}
+                        </div>
+
+                        <div className="completed-tasks">
+                            {missedTaskElements?.length > 0 && <h4>Missed</h4>}
+                            {missedTaskElements}
                         </div>
                     </div>
                     <div className="habit-streak-section flex">
@@ -334,15 +197,15 @@ export default function Dashboard() {
                         <div className="summary-items">
                             <div>
                                 <h4>Productivity</h4>
-                                <h3>{info.productivity}</h3>
+                                <h3>{summary.productivity}</h3>
                             </div>
                             <div>
                                 <h4>Active Streaks</h4>
-                                <h3>{info.active_streaks}</h3>
+                                <h3>{summary.active_streaks}</h3>
                             </div>
                             <div>
                                 <h4>Missed Tasks</h4>
-                                <h3>{info.missed_tasks}</h3>
+                                <h3>{summary.missed_tasks}</h3>
                             </div>
                         </div>
                     </div>

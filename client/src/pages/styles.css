@@ -185,7 +185,28 @@
     width: 100vw;
 }
 
+.add-button img {
+    height: 20px;
+    width: 20px;
+}
 
+.add-chat-buttons {
+    position: fixed;
+    right: 5%;
+    bottom: 5%;
+}
+
+.add-chat-buttons button {
+    border: none;
+    background: none;
+    border: 1px solid black;
+    margin: 10px;
+    border-radius: 50%;
+    height: 70px;
+    width: 70px;
+    background-color: white;
+
+}
 
 @media ( max-width: 700px) {
     .task-section {
@@ -1036,4 +1057,36 @@
     height: 40px;
     width: 40px;
     margin-right: 5px;
+}
+
+
+/*Spinner Styles*/
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg); }
+}
+
+.signup-button {
+  position: relative;
+  padding: 8px 20px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.disabled {
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.8;
 }

@@ -1,27 +1,42 @@
 import { act, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import './styles.css'
 
-const task = {
-    "name": "Submit Sales Report test for flex growing ability. does this grow?",
-    "description": "I was tasked with this. the name has flex grow now, does this also inherit te groe and the left alignment?",
-    "status": "pending",
-    "days_remaining": 2,
-    "priority": "high",
-    "is_habit": 0,
-    "is_project": 0,
-    "due_date": "2025-12-31",
-    "created_on": new Date(),
-    "tags": ["sales", "company", "urgent"],
-    "current_streak": 80,
-    "longest_streak": 80,
-}
+
+import api from "../api.js"
 
 
 export default function ActivityDetails() {
     const navigate = useNavigate()
-    const [taskInfo, setTaskInfo] = useState(task)
+    const [taskInfo, setTaskInfo] = useState({})
+    const [loading, setLoading] = useState(false)
 
+
+
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchInfo = async () => {
+          try {
+            const response = await api.get(`/tasks/${id}`);
+            console.log("Fetched Info", response)
+            setTaskInfo(response.data)
+            console.log("Info", taskInfo)
+          } catch (error) {
+            console.error(error)
+          }
+        };
+        fetchInfo();
+        return () => {
+          mounted = false; 
+        };
+    }, []);
+
+    useEffect(() => {
+      console.log("Fetched info:", taskInfo);
+    }, [taskInfo]);
+
+    const { id } = useParams()
 
     const [editFormData, setEditFormData] = useState ({
         name: "",
@@ -35,14 +50,20 @@ export default function ActivityDetails() {
         navigate("/dashboard");
     };
 
-    const updateTaskStatus = (id) => {
-        setTaskInfo((prevInfo) => ({
-            ...prevInfo,
-            status: prevInfo.status === "completed" ? "pending" : "completed",
-        }))
+    const updateTaskStatus = async () => {
+    try {
+        const response = await api.patch(`/tasks/${taskInfo.id}/`, {
+        is_completed: !taskInfo.is_completed,
+        });
+
+        setTaskInfo((prev) => ({
+        ...prev,
+        ...response.data, 
+        }));
+    } catch (error) {
+        console.error("Error updating task status:", error);
     }
-
-
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -52,9 +73,10 @@ export default function ActivityDetails() {
         });
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setLoading(true)
         const updates = {};
 
         for (const [key, value] of Object.entries(editFormData)) {
@@ -65,28 +87,38 @@ export default function ActivityDetails() {
             }
         }
 
-        console.log(updates)
-        console.log(taskInfo)
-
         if (Object.keys(updates).length > 0) {
+            try {
+            const response = await api.patch(`/tasks/${taskInfo.id}/`, updates);
+
             setTaskInfo((prevInfo) => ({
                 ...prevInfo,
-                ...updates
+                ...response.data,
             }));
+
             alert("Task information updated");
+            } catch (error) {
+            console.error("Error updating task:", error);
+            alert("Failed to update task");
+            }
         }
-        setEditing(!editing)
+
+        setEditing(false);
+        setLoading(false)
     }
 
     const [editing, setEditing] = useState(false)
 
-    const activityType = () => {
-        if (task.is_habit) return 'habit'
-        else if (task.is_project) return 'project'
-        else return 'task'
-    }
+    const remainingDays = () => {
+        const targetDate = new Date(taskInfo.due_date)
+        const today = new Date()
 
-    const tags = () => task.tags.map((tag, index) => {
+        const diffMs = targetDate - today;
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        return diffDays;
+    } 
+
+    const tags = () => taskInfo.tags.split(",").map((tag, index) => {
         return (
             <div className='tag'>
                 <p key={index}>{tag}</p>
@@ -94,17 +126,10 @@ export default function ActivityDetails() {
         )
     })
 
-    const tag_text = () => {
-        let text = ""
-        for (const tag of task.tags) {
-            text = text + tag + ", ";
-        }
-        return text
-    }
-
+    
     return (
         <>
-            <div className='page'>
+            <div className={`page ${loading ? "disabled": ""}`}>
                 <div className="banner">
                     <button className="back-button" onClick={goBack}>
                         <img src="/left-arrow.png" alt="icon" />
@@ -123,11 +148,11 @@ export default function ActivityDetails() {
                                     <div className='edit-profile-form-sections'>
                                         <div className="edit-activity-form-section">
                                             <label htmlFor="">Title</label>
-                                            <input type="text" defaultValue={task.name} name='name' onChange={handleInputChange}/>
+                                            <input type="text" defaultValue={taskInfo.title} name='title' onChange={handleInputChange}/>
                                         </div>
                                         <div className="edit-activity-form-section">
                                             <label htmlFor="">Description</label>
-                                            <input type="text" defaultValue={task.description} name='description' onChange={handleInputChange}/>
+                                            <input type="text" defaultValue={taskInfo.description} name='description' onChange={handleInputChange}/>
                                         </div>
                                         <div className="edit-activity-form-section">
                                             <label htmlFor="">Priority</label>
@@ -138,11 +163,11 @@ export default function ActivityDetails() {
                                         </div>
                                         <div className="edit-activity-form-section">
                                             <label htmlFor="">Due Date</label>
-                                            <input type="date" defaultValue={task.due_date} name='due_date' onChange={handleInputChange}/>
+                                            <input type="date" defaultValue={taskInfo.due_date} name='due_date' onChange={handleInputChange}/>
                                         </div>
                                         <div className="edit-activity-form-section">
                                             <label htmlFor="">Tags (comma seperated)</label>
-                                            <input type="text" defaultValue={tag_text()} name='tags' onChange={handleInputChange}/>
+                                            <input type="text" defaultValue={taskInfo.tags} name='tags' onChange={handleInputChange}/>
                                         </div>
                                     </div>
                                     <div className="edit-form-buttons">
@@ -166,7 +191,7 @@ export default function ActivityDetails() {
                     ) : (
                         <>
                             <div className='activity-detials-page-buttons'>
-                                <h3>{activityType()}</h3>
+                                <h3>{taskInfo.type}</h3>
                                 <button className="back-button" onClick={(e) => {setEditing(!editing)}}>
                                     <img src="/edit.png" alt="user" />
                                     <h4>
@@ -177,13 +202,13 @@ export default function ActivityDetails() {
                             <div className='activity-details'>
                                 <div className="checkbox-section">
                                     <label className="custom-checkbox">
-                                        {taskInfo.status === "completed" ? (<input type="checkbox" defaultChecked onChange={updateTaskStatus}/>) : (<input type="checkbox" onChange={updateTaskStatus}/>)}
+                                        <input type="checkbox" checked={taskInfo.is_completed} onChange={updateTaskStatus}/>
                                         <span className="checkmark"></span>
                                     </label>
                                 </div>
 
                                 <div className='activity-description'>
-                                    <h3>{taskInfo.name}</h3>
+                                    <h3>{taskInfo.title}</h3>
                                     <h4>{taskInfo.description}</h4>
                                 </div>
                             </div>
@@ -194,7 +219,7 @@ export default function ActivityDetails() {
                                     <ul>
                                         <li><div><p>Priority</p></div><div>{taskInfo.priority}</div></li>
                                         <li><div><p>Due Date</p></div><div>{taskInfo.due_date}</div></li>
-                                        <li><div><p>Created</p></div><div>{taskInfo.created_on.toLocaleDateString()}</div></li>
+                                        <li><div><p>Created</p></div><div>{taskInfo.created_at}</div></li>
                                         {taskInfo.is_habit ? (
                                             <>
                                                 <li><div><p>Current Streak</p></div><div>{taskInfo.current_streak}</div></li>
@@ -208,18 +233,25 @@ export default function ActivityDetails() {
                                                 <li><div><p>Days Remaining</p></div><div>{taskInfo.days_remaining}</div></li></>
                                         ) : (
                                             <>
-                                                <li><div><p>Status</p></div><div>{taskInfo.status}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{taskInfo.days_remaining}</div></li>
+                                                <li><div><p>Status</p></div><div>{taskInfo.is_completed? "Completed": "Pending"}</div></li>
+                                                <li><div><p>Days Remaining</p></div><div>{remainingDays()}</div></li>
                                             </>
                                         )}
-                                        <li><div className='tag-section'><div>Tags</div><div className='activity-properties-tag'>{tags()}</div></div></li>
+                                        {(taskInfo.tags && taskInfo.tags.trim() !== "") ? (
+                                            <li>
+                                                <div className='tag-section'>
+                                                    <div>Tags</div>
+                                                    <div className='activity-properties-tag'>{tags()}</div>
+                                                </div>
+                                            </li>
+                                        ) : null}
 
                                     </ul>
                                 </div>
                             </div>
                             <div className='activity-buttons'>
                                 <h3>Actions</h3>
-                                {taskInfo.status === "completed" ? (
+                                {taskInfo.is_completed ? (
                                     <button className='button complete-button' onClick={updateTaskStatus}>
                                         <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' />
                                         <p>Mark as Incomplete</p>
