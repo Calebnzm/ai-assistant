@@ -56,11 +56,13 @@ export default function ActivityDetails() {
         is_completed: !taskInfo.is_completed,
         });
 
+        alert("Task Updated Succesfully.")
         setTaskInfo((prev) => ({
         ...prev,
         ...response.data, 
         }));
     } catch (error) {
+        alert("Error updating task. Try again.")
         console.error("Error updating task status:", error);
     }
     };
@@ -71,6 +73,20 @@ export default function ActivityDetails() {
             ...editFormData,
             [name]: value,
         });
+    }
+
+    const deleteTask = async () => {
+
+
+        try {
+            const response = await api.delete(`/tasks/${taskInfo.id}/`);
+            alert("Task deleted Succesfully.")
+            navigate("/dashboard");
+            console.log("Task Deleted Succesfully")
+        } catch (error) {
+            console.error("Failed to delete task:", error);
+            alert("Failed to delete task. Please try again.")
+        }
     }
 
     const handleSubmit = async (e) => {
@@ -173,9 +189,7 @@ export default function ActivityDetails() {
                                     <div className="edit-form-buttons">
                                         <button className="edit-button" type='submit'>
                                             <img src="/save.svg" alt="user" />
-                                            <h4>
-                                                Save
-                                            </h4>
+                                            <>{loading ? <div className="spinner"></div> : "Save"}</>
                                         </button>
                                         <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
                                             <img src="/cancel.svg" alt="user" />
@@ -218,23 +232,24 @@ export default function ActivityDetails() {
                                 <div className='activity-properties-info'>
                                     <ul>
                                         <li><div><p>Priority</p></div><div>{taskInfo.priority}</div></li>
-                                        <li><div><p>Due Date</p></div><div>{taskInfo.due_date}</div></li>
-                                        <li><div><p>Created</p></div><div>{taskInfo.created_at}</div></li>
+                                        <li><div><p>Due Date</p></div><div>{taskInfo?.due_date ? new Date(taskInfo.due_date).toLocaleDateString() : "Loading..."}</div></li>
+                                        <li><div><p>Created</p></div><div>{taskInfo?.created_at ? new Date(taskInfo.created_at).toLocaleDateString() : "Loading..."}</div></li>
                                         {taskInfo.is_habit ? (
                                             <>
                                                 <li><div><p>Current Streak</p></div><div>{taskInfo.current_streak}</div></li>
                                                 <li><div><p>Longest Streak</p></div><div>{taskInfo.longest_streak}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{taskInfo.days_remaining}</div></li>
+                                                <li><div><p>Days Remaining</p></div><div>{remainingDays() > 0 ? remainingDays() : "Completed"}</div></li>
                                             </>
                                         ) : taskInfo.is_project ? (
                                             <>
                                                 <li><div><p>Current Streak</p></div><div>{taskInfo.current_streak}</div></li>
                                                 <li><div><p>Longest Streak</p></div><div>{taskInfo.longest_streak}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{taskInfo.days_remaining}</div></li></>
+                                                <li><div><p>Days Remaining</p></div><div>{remainingDays() > 0 ? remainingDays() : "Completed"}</div></li>
+                                            </>
                                         ) : (
                                             <>
                                                 <li><div><p>Status</p></div><div>{taskInfo.is_completed? "Completed": "Pending"}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{remainingDays()}</div></li>
+                                                <li><div><p>Days Remaining</p></div><div>{remainingDays() > 0 ? remainingDays() : "Missed"}</div></li>
                                             </>
                                         )}
                                         {(taskInfo.tags && taskInfo.tags.trim() !== "") ? (
@@ -253,18 +268,18 @@ export default function ActivityDetails() {
                                 <h3>Actions</h3>
                                 {taskInfo.is_completed ? (
                                     <button className='button complete-button' onClick={updateTaskStatus}>
-                                        <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' />
-                                        <p>Mark as Incomplete</p>
+                                        {/* <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' /> */}
+                                        <>{loading ? <div className="spinner"></div> : <div style={{color: "white"}}>Mark as Incomplete</div>}</>
                                     </button>
                                 ) : (
                                     <button style={{backgroundColor: "green"}} className='button complete-button' onClick={updateTaskStatus}>
-                                        <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' />
-                                        <p>Mark as Complete</p>
+                                        {/* <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' /> */}
+                                       <>{loading ? <div className="spinner"></div> : <div style={{color: "white"}}>Mark as complete</div>}</>
                                     </button>
                                 )}
-                                <button className='button delete-button'>
-                                    <img src="/delete.png" alt="icon" className='icon-image' />
-                                    <p>Delete</p>
+                                <button className='button delete-button' onClick={deleteTask}>
+                                    {/* <img src="/delete.png" alt="icon" className='icon-image' /> */}
+                                    <>{loading ? <div className="spinner"></div> : "Delete"}</>
                                 </button>
                             </div>
                         </>

@@ -1,6 +1,6 @@
 import "./styles.css"
 
-export default function TaskBar({ task, updateTaskStatus, openTaskDetails }) {
+export default function TaskBar({ task, updateTaskStatus, openTaskDetails, selectedDate }) {
 
     const priorityColors = {
         "high": 'red',
@@ -14,9 +14,8 @@ export default function TaskBar({ task, updateTaskStatus, openTaskDetails }) {
 
     const remainingDays = () => {
         const targetDate = new Date(task.due_date)
-        const today = new Date()
 
-        const diffMs = targetDate - today;
+        const diffMs = targetDate - selectedDate;
         const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
         return diffDays;
     } 
@@ -26,13 +25,25 @@ export default function TaskBar({ task, updateTaskStatus, openTaskDetails }) {
         <>
             <div className="task-container" onClick={() => openTaskDetails(task.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openTaskDetails(task.id)}>
                 <div className="checkbox-section" onClick={(e) => e.stopPropagation()}>
-                    <label className="custom-checkbox">
-                        {task.is_completed ? (<input type="checkbox" defaultChecked onChange={handleStatusChange}/>) : (<input type="checkbox" onChange={handleStatusChange}/>)}
-                        <span className="checkmark"></span>
-                    </label>
+                <label className="custom-checkbox">
+                <input
+                    type="checkbox"
+                    checked={
+                    task.type === "task"
+                        ? task.is_completed
+                        : Array.isArray(task.streak_dates) &&
+                        task.streak_dates.includes(selectedDate.toISOString().split("T")[0])
+                    }
+                    onChange={handleStatusChange}
+                />
+                <span className="checkmark"></span>
+                </label>
+
+
+
                 </div>
                 <div className="title"><h4>{task.title}</h4></div>
-                <div className="days-left-section"><p className="days-left">{remainingDays()}</p></div>
+                <div className="days-left-section"><p className="days-left">{remainingDays() > 0 ? remainingDays() : 0}</p></div>
                 <div className="priority-section"><span className="priority" style={{backgroundColor: priorityColors[task.priority]}}>{task["priority"]}</span></div>
             </div>
         </>

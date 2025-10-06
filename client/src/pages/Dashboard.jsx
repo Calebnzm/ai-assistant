@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import StreakBar from "../components/StreakBar";
 import TaskBar from "../components/Task";
@@ -10,6 +10,7 @@ export default function Dashboard() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [info, setInfo] = useState([]);
     const [summary, setSummary] = useState({})
+    const dateInputRef = useRef(null);
     
     useEffect(() => {
         let mounted = true;
@@ -61,51 +62,79 @@ export default function Dashboard() {
         navigate(`/activityDetails/${id}`)
     }
 
+    const datePos = (date1, date2) => {
+        const today = new Date(date2);
+
+        const sel = new Date(date1);
+        sel.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (sel.getTime() === today.getTime()) {
+            return 0; 
+        } else if (sel.getTime() > today.getTime()) {
+            return 1; 
+        } else {
+            return -1; 
+        }
+    };
 
 
     const previousDay = () => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() - 1)));
 
     const nextDay = () => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() + 1)));
 
-    const pendingTaskElements = info.filter(task => !task.is_completed)
+    const pendingTaskElements = info.filter(task => !task.is_completed ||(task.type != "task" && (Array.isArray(task.streak_dates) && !task.streak_dates.includes(selectedDate.toISOString().split("T")[0]))))
     .map(task => (
         <TaskBar
         key={task.id}
         task={task}
+        selectedDate={selectedDate}
         updateTaskStatus={updateTaskStatus}
         openTaskDetails={openTaskDetails}
         />
     ));
 
-    const completedTaskElements = info.filter(task  => task.is_completed)
-    .map(task => (
-        <TaskBar
-        key={task.id}
-        task={task}
-        updateTaskStatus={updateTaskStatus}
-        openTaskDetails={openTaskDetails}
-        />
-    ));
+    const completedTaskElements = () => {
+        const pos = datePos(selectedDate, new Date())
+        if (pos == 0) {
+            return info.filter(task  => task.is_completed)
+            .map(task => (
+                <TaskBar
+                key={task.id}
+                task={task}
+                updateTaskStatus={updateTaskStatus}
+                selectedDate={selectedDate}
+                openTaskDetails={openTaskDetails}
+                />
+            ));
+        } else if (pos == -1) {
+            return info.filter(task  => task.is_completed && datePos(selectedDate, task.completion_date) === 0)
+            .map(task => (
+                <TaskBar
+                key={task.id}
+                task={task}
+                updateTaskStatus={updateTaskStatus}
+                selectedDate={selectedDate}
+                openTaskDetails={openTaskDetails}
+                />
+            ));
+        }
+    }
 
-    const missedTaskElements = info
-    .filter(task => {
-        if (!task.completion_date) return false; // skip tasks not completed
-
-        const dueDate = new Date(task.due_date);
-        const completionDate = new Date(task.completion_date);
-        const today = new Date(); // current date/time
-
-        return completionDate > dueDate && completionDate > today;
-    })
-    .sort((a, b) => new Date(a.completion_date) - new Date(b.completion_date)) // optional sorting
-    .map(task => (
-        <TaskBar
-        key={task.id}
-        task={task}
-        updateTaskStatus={updateTaskStatus}
-        openTaskDetails={openTaskDetails}
-        />
-    ));
+    const missedTaskElements = () => {
+        const pos = datePos(selectedDate, new Date())
+        if (pos == -1) {
+                return info.filter(task => task.completion_date && datePos(task.completion_date, task.due_date) === 1).map(task => (
+                <TaskBar
+                key={task.id}
+                task={task}
+                updateTaskStatus={updateTaskStatus}
+                selectedDate={selectedDate}
+                openTaskDetails={openTaskDetails}
+                />
+            ));
+        }
+    }
 
     const habitStreaks = info.map((task, index) => {
         if (task.type === "habit")
@@ -117,6 +146,14 @@ export default function Dashboard() {
         return <StreakBar key={index} task={task} />
     })
 
+    const openDatePicker = () => {
+        dateInputRef.current?.showPicker?.(); 
+        dateInputRef.current?.click?.();      
+        };
+
+        const handleDateChange = (e) => {
+            setSelectedDate(new Date(e.target.value));
+        };
 
     return (
         <>
@@ -128,7 +165,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <div className="add-button">
-                    <button>
+                    <button onClick={() => navigate("/chatAssistant")}>
                       <img src="chat-assistant.png" alt="Add" />
                     </button>
                   </div>
@@ -143,11 +180,17 @@ export default function Dashboard() {
                     <button onClick={previousDay}>
                         <img src="left-arrow.png" alt="previous" />
                     </button>
-                    <button>
+                    <button  onClick={openDatePicker}>
                         <h4>{selectedDate.toLocaleDateString()}</h4>
-                        <input style={{display: "none"}} type="date" defaultValue={selectedDate.toISOString().split("T")[0]}/>
+                        {/* <input className="selected-date-input" type="date" defaultValue={selectedDate.toISOString().split("T")[0]}/> */}
                     </button>
-
+                    <input
+                        type="date"
+                        ref={dateInputRef}
+                        value={selectedDate.toISOString().split("T")[0]}
+                        onChange={handleDateChange}
+                        style={{ display: "none" }} // keeps it invisible
+                    />
                     <button onClick={nextDay}>
                         <img src="right-arrow.png" alt="next" />
                     </button>
@@ -165,13 +208,13 @@ export default function Dashboard() {
 
                         
                         <div className="completed-tasks">
-                            {completedTaskElements?.length > 0 && <h4>Completed</h4>}
-                            {completedTaskElements}
+                            {completedTaskElements()?.length > 0 && <h4>Completed</h4>}
+                            {completedTaskElements()}
                         </div>
 
                         <div className="completed-tasks">
-                            {missedTaskElements?.length > 0 && <h4>Missed</h4>}
-                            {missedTaskElements}
+                            {missedTaskElements()?.length > 0 && <h4>Missed</h4>}
+                            {missedTaskElements()}
                         </div>
                     </div>
                     <div className="habit-streak-section flex">

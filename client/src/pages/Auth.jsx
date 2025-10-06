@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import './styles.css';
@@ -24,9 +24,13 @@ export default function Auth() {
     const navigate = useNavigate();
 
 
+    useEffect(() => {
+        setErrors({});
+    }, [hasAccount])
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        setErrors(prevErrors => ({ ...prevErrors, [name]: undefined }));
         setFormData({
             ...formData,
             [name]: value,

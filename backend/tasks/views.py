@@ -5,12 +5,14 @@ from .serializers import TaskSerializer
 from django.utils import timezone
 from django.db.models import F, Q
 from datetime import datetime, time
+from api.models import update_achievements
 
 class TaskListCreateView(generics.ListCreateAPIView):
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        today = timezone.now().date()
         date_str = self.request.query_params.get("date")
         if date_str:
             try:
@@ -20,29 +22,56 @@ class TaskListCreateView(generics.ListCreateAPIView):
         else:
             selected_date = timezone.now().date()
 
-        selected_datetime_start = timezone.make_aware(datetime.combine(selected_date, time.min))
-        selected_datetime_end = timezone.make_aware(datetime.combine(selected_date, time.max))
+        if selected_date == today:
+            return Task.objects.filter(
+                Q(user=self.request.user) & (
+                    Q(type__in=['habit', 'project'], created_at__date__lte=selected_date, due_date__gte=selected_date) |
+                    
+                    Q(type='task', is_completed=False, created_at__date__lte=selected_date) |
+                    
+                    Q(type='task', completion_date__date=selected_date)
+                )
+            ).order_by("due_date")
+        
+        elif selected_date > today:
+            return Task.objects.filter(
+                Q(user=self.request.user) & (
+                    Q(type__in=['habit', 'project'], created_at__date__lte=selected_date, due_date__gte=selected_date) |
+                    
+                    Q(type='task', is_completed=False, created_at__date__lte=selected_date)
+                )
+            ).order_by("due_date")
+        
+        else:
+            return Task.objects.filter(
+                Q(user=self.request.user) & (
+                    Q(type__in=['habit', 'project'], created_at__date__lte=selected_date, due_date__gte=selected_date) |
+                    
+                    Q(type='task', due_date=selected_date, completion_date__date__gt=F('due_date')) |
 
-        return Task.objects.filter(
-            Q(user=self.request.user) & (
-                (Q(completion_date__range=(selected_datetime_start, selected_datetime_end)) & Q(due_date__lt=F('completion_date'))) |
-                
-                (Q(type__in=['habit', 'project']) & Q(due_date__gt=selected_date)) |
-                
-                (Q(is_completed=False) & Q(due_date__gte=selected_date)) |
-                
-                Q(completion_date__range=(selected_datetime_start, selected_datetime_end))
-            )
-        ).order_by("due_date")
+                    Q(type='task', is_completed=False, due_date__lte=selected_date) |
+                    
+                    Q(type='task', completion_date__date=selected_date)
+                )
+            ).order_by("due_date")
 
-        return queryset
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+
+        date_str = self.request.query_params.get("date")
+        if date_str:
+            try:
+                selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                selected_date = timezone.now().date()
+        else:
+            selected_date = timezone.now().date()
+        
+        serializer = self.get_serializer(queryset, many=True, context={"selected_date": selected_date})
 
         tasks = self.request.user.tasks.all()
         total_tasks = tasks.count()
@@ -72,14 +101,19 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def perform_update(self, serializer):
         task = serializer.save()
+        today = timezone.localdate()
+
         if task.is_completed:
             if not task.completion_date:
-                task.completion_date = timezone.now().date()
-                task.save(update_fields=["completion_date"])
-        else:
-            if task.completion_date:
-                task.completion_date = None
-                task.save(update_fields=["completion_date"])
+                task.completion_date = timezone.now()
 
-        if task.type in ['habit', 'project'] and task.is_completed:
-            task.update_streak()
+            if task.type in ['habit', 'project']:
+                task.update_streak(today)
+
+        else:
+            task.completion_date = None
+            if task.type in ['habit', 'project']:
+                task.mark_incomplete()
+
+        task.save(update_fields=["completion_date", "streak", "streak_dates", "last_completed"])
+        update_achievements(self.request.user)

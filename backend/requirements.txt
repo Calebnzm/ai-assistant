@@ -1,0 +1,7 @@
+Django==5.2.6
+djangorestframework==3.16.1
+fastmcp==2.12.3
+protobuf==6.32.1
+python-dotenv==1.1.1
+Requests==2.32.5
+rest_framework_simplejwt==0.0.2

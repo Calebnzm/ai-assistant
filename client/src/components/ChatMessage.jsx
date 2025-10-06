@@ -1,4 +1,5 @@
 import "./styles.css"
+import ReactMarkDown from "react-markdown"
 
 export default function ChatMessage({ message }) {
 
@@ -12,20 +13,20 @@ export default function ChatMessage({ message }) {
     return (
         <>
             <div className="achievement-section message-section" style={{ backgroundColor: backgroundColor()}}>
-                    {(message.role === "assistant") ? (
+                    {(message.role === "model") ? (
                         <>
                             <div className="icon">
                                 <img src="robot.png" alt="icon" />
                             </div>
                             <div className="details">
-                                <h4>{message.content}</h4>
+                                <ReactMarkDown>{message.content}</ReactMarkDown>
                             </div>
                         </>
 
                     ) : (
                         <>
                             <div className="details">
-                                <h4>{message.content}</h4>
+                                <ReactMarkDown>{message.content}</ReactMarkDown>
                             </div>
                                 <div className="icon">
                                 <img src="profile-user.png" alt="icon" />

@@ -12,12 +12,18 @@ class TaskSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "created_at", "updated_at", "completion_date"]
 
     def get_streak_history(self, obj):
-        today = date.today()
+        selected_date = self.context.get("selected_date", date.today())
         streak_array = []
 
+        streak_dates = [
+            d if isinstance(d, date) else date.fromisoformat(d)
+            for d in obj.streak_dates or []
+        ]
+
         for i in range (6, -1, -1):
-            day = today - timedelta(days=i)
-            if obj.last_completed == day:
+            day = selected_date - timedelta(days=i)
+
+            if day in streak_dates:
                 streak_array.append(1)
             else:
                 streak_array.append(0)
