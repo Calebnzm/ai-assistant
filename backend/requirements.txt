@@ -7,4 +7,4 @@ django-cors-headers
 python-dotenv
 djangorestframework
 djangorestframework-simplejwt
-google
+google-generativeai
