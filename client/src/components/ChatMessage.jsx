@@ -15,9 +15,6 @@ export default function ChatMessage({ message }) {
             <div className="achievement-section message-section" style={{ backgroundColor: backgroundColor()}}>
                     {(message.role === "model") ? (
                         <>
-                            <div className="icon">
-                                <img src="robot.png" alt="icon" />
-                            </div>
                             <div className="details">
                                 <ReactMarkDown>{message.content}</ReactMarkDown>
                             </div>
@@ -27,9 +24,6 @@ export default function ChatMessage({ message }) {
                         <>
                             <div className="details">
                                 <ReactMarkDown>{message.content}</ReactMarkDown>
-                            </div>
-                                <div className="icon">
-                                <img src="profile-user.png" alt="icon" />
                             </div>
                         </>
                     )}
