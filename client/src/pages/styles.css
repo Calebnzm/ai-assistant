@@ -507,6 +507,11 @@
     font-weight: 500;
 }
 
+.back-button img {
+    height: 20px;
+    width: 20px;
+}
+
 .logout-button {
     height: 40px;
     background-color: #f7f6f6;
