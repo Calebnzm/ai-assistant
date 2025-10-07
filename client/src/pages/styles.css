@@ -943,7 +943,7 @@
     border-radius: 5px;
     padding: 10px;
     height: 50px;
-    font-size: 15px;
+    font-size: 17px;
 }
 
 .edit-activity-form-section select {
@@ -1046,6 +1046,7 @@
     border-radius: 5px;
     padding: 10px;
     outline: none;
+    font-size: 17px;
 }
 
 .file-input {
