@@ -13,8 +13,9 @@ import os
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-chat = client.chats.create(model="gemini-2.5-flash")
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 class ConversationAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -61,7 +62,7 @@ class ConversationAPIView(APIView):
             for msg in conversation.messages.all().order_by("created_at")
         ]
 
-        response = client.models.generate_content(
+        response = model.generate_content(
             model="gemini-2.5-flash",
             contents=history,
             config=types.GenerateContentConfig(
