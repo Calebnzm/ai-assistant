@@ -70,24 +70,31 @@ export default function Dashboard() {
         today.setHours(0, 0, 0, 0);
 
         if (sel.getTime() === today.getTime()) {
+            //if date1 and date 2 are the same dates
             return 0; 
         } else if (sel.getTime() > today.getTime()) {
+            //if date1 is before date 2
             return 1; 
         } else {
+            //if date2 is before date1
             return -1; 
         }
     };
+    const pos = datePos(selectedDate, new Date())
+
 
 
     const previousDay = () => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() - 1)));
 
     const nextDay = () => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() + 1)));
 
-    const pendingTaskElements = info.filter(task => !task.is_completed ||(task.type != "task" && (Array.isArray(task.streak_dates) && !task.streak_dates.includes(selectedDate.toISOString().split("T")[0]))))
+    const pendingTaskElements = info.filter(task => (datePos(selectedDate, new Date()) != -1) && (!task.is_completed ||(task.type != "task" && (Array.isArray(task.streak_dates) && !task.streak_dates.includes(selectedDate.toISOString().split("T")[0])))))
     .map(task => (
         <TaskBar
         key={task.id}
         task={task}
+        taskStatus="pending"
+        datePosition={pos}
         selectedDate={selectedDate}
         updateTaskStatus={updateTaskStatus}
         openTaskDetails={openTaskDetails}
@@ -95,24 +102,27 @@ export default function Dashboard() {
     ));
 
     const completedTaskElements = () => {
-        const pos = datePos(selectedDate, new Date())
         if (pos == 0) {
-            return info.filter(task  => task.is_completed)
+            return info.filter(task  => (task.is_completed && task.type === "task") ||(task.type != "task" && (Array.isArray(task.streak_dates) && task.streak_dates.includes(selectedDate.toISOString().split("T")[0]))))
             .map(task => (
                 <TaskBar
                 key={task.id}
                 task={task}
+                taskStatus="completed"
+                datePosition={pos}
                 updateTaskStatus={updateTaskStatus}
                 selectedDate={selectedDate}
                 openTaskDetails={openTaskDetails}
                 />
             ));
         } else if (pos == -1) {
-            return info.filter(task  => task.is_completed && datePos(selectedDate, task.completion_date) === 0)
+            return info.filter(task  => (task.type == "task" &&task.is_completed && datePos(selectedDate, task.completion_date) === 0) ||(task.type != "task" && (Array.isArray(task.streak_dates) && task.streak_dates.includes(selectedDate.toISOString().split("T")[0]))))
             .map(task => (
                 <TaskBar
                 key={task.id}
                 task={task}
+                taskStatus="completed"
+                datePosition={pos}
                 updateTaskStatus={updateTaskStatus}
                 selectedDate={selectedDate}
                 openTaskDetails={openTaskDetails}
@@ -124,10 +134,12 @@ export default function Dashboard() {
     const missedTaskElements = () => {
         const pos = datePos(selectedDate, new Date())
         if (pos == -1) {
-                return info.filter(task => task.completion_date && datePos(task.completion_date, task.due_date) === 1).map(task => (
+                return info.filter(task => (task.completion_date && datePos(task.completion_date, task.due_date) === 1 && datePos(task.completion_date, selectedDate) != 0) ||(task.type != "task" && (Array.isArray(task.streak_dates) && !task.streak_dates.includes(selectedDate.toISOString().split("T")[0])))).map(task => (
                 <TaskBar
                 key={task.id}
                 task={task}
+                taskStatus="missed"
+                datePosition={pos}
                 updateTaskStatus={updateTaskStatus}
                 selectedDate={selectedDate}
                 openTaskDetails={openTaskDetails}

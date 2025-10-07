@@ -142,6 +142,25 @@ export default function ActivityDetails() {
         )
     })
 
+    const datePos = (date1, date2) => {
+        const today = new Date(date2);
+
+        const sel = new Date(date1);
+        sel.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (sel.getTime() === today.getTime()) {
+            //if date1 and date 2 are the same dates
+            return 0; 
+        } else if (sel.getTime() > today.getTime()) {
+            //if date1 is before date 2
+            return 1; 
+        } else {
+            //if date2 is before date1
+            return -1; 
+        }
+    };
+
     
     return (
         <>
