@@ -8,3 +8,4 @@ python-dotenv
 djangorestframework
 djangorestframework-simplejwt
 google-generativeai
+psycopg2-binary
