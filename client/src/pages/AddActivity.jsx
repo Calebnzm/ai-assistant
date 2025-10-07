@@ -1,6 +1,6 @@
 import "./styles.css"
 import { useNavigate } from "react-router-dom"
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ErroMessage from '../components/ErrorMessage.jsx'
 
 
@@ -29,6 +29,12 @@ export default function AddActivity() {
             [name]: value,
         });
     }
+
+    const topPageRef = useRef(null);
+
+    useEffect(() => {
+    topPageRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, []);
 
     const validate = () => {
 
@@ -103,6 +109,7 @@ export default function AddActivity() {
                 </div>
                 <div className="activity-details-page">
                     <div className='edit-profile edit-task'>
+                        <div ref={topPageRef} />
                         <form onSubmit={handleSubmit} className='edit-activity-form'>
                             <div className='edit-profile-form-sections'>
                                 <div className="edit-activity-form-section">

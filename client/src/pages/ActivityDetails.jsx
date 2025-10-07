@@ -1,4 +1,4 @@
-import { act, useEffect, useState } from 'react'
+import { act, useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import './styles.css'
 
@@ -35,6 +35,12 @@ export default function ActivityDetails() {
     useEffect(() => {
       console.log("Fetched info:", taskInfo);
     }, [taskInfo]);
+
+    const topPageRef = useRef(null);
+
+    useEffect(() => {
+    topPageRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, []);
 
     const { id } = useParams()
 
@@ -176,6 +182,7 @@ export default function ActivityDetails() {
                     </button>
                 </div>
                 <div className='activity-details-page'>
+                    <div ref={topPageRef} />
                     {editing ? (
                         <>
                             <div className='edit-profile edit-task'>
