@@ -56,15 +56,18 @@ class ConversationAPIView(APIView):
         """
 
         ChatMessage.objects.create(conversation=conversation, role="user", content=message)
-
+        
         history = [
-            {"role": msg.role, "parts" : [{ "text": msg.content}]}
+            {"role": msg.role, "parts": [{"text": msg.content}]}
             for msg in conversation.messages.all().order_by("created_at")
         ]
 
+        # Add system prompt at the start
+        contents = [{"role": "system", "parts": [{"text": system_prompt}]}] + history
+
+        # Generate model response
         response = model.generate_content(
-            contents=history,
-            system_instruction=system_prompt
+            contents=contents
         )
 
         assistant_message = response.text
