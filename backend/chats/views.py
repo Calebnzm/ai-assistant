@@ -9,6 +9,7 @@ from .serializers import ConversationSerializer
 from django.utils import timezone
 from datetime import timedelta
 from dotenv import load_dotenv
+import json
 from tools.tool_registry import TOOL_REGISTRY, TOOL_SCHEMAS
 import requests
 import os
@@ -77,22 +78,39 @@ class ConversationAPIView(APIView):
         while True:
 
             if response.function_calls:
-                results = []
-                call_logs = []
                 for function_call in response.function_calls:
                     tool_name = function_call.name
                     tool_args = {key: value for key, value in function_call.args.items()}
                     tool_args["user_id"] = user.id
 
-                    full_tool_url = f"{request.scheme}://{request.get_host()}/api/chats/agent/execute-tool/"
 
+                    tool_function = TOOL_REGISTRY.get(tool_name)
+                    if not tool_function:
+                        return Response({"error": f"Tool '{tool_name}' not found."}, status=404)
+                    
+                    try:
+                        tool_result = tool_function(**tool_args)
 
-                    api_response = requests.post(
-                        full_tool_url, 
-                        json={"tool_name": tool_name, "arguments": tool_args},
-                        headers={"Authorization": request.headers.get("Authorization")}
-                    )
-                    tool_result = api_response.json()
+                    except ValueError as e:
+                        tool_result = {
+                            "status": "error",
+                            "error_type": "VALIDATION_ERROR",
+                            "message": "One of the provided arguments has an invalid format.",
+                            "details": str(e)
+                        }
+                        
+                    except TypeError as e:
+                        tool_result = {
+                            "status": "error",
+                            "error_type": "ARGUMENT_ERROR",
+                            "message": "Missing or incorrect arguments for the tool.",
+                            "details": str(e)
+                        }
+                        
+                    except Exception as e:
+                        tool_result = {"error": f"An unexpected error occurred: {e}"}
+                    if not isinstance(tool_result, dict):
+                        tool_result = json.loads(tool_result)
                     print(tool_result)
                     function_response_part = types.Part.from_function_response(
                         name=function_call.name,
@@ -154,43 +172,3 @@ class ActiveConversationAPIView(APIView):
         serializer = ConversationSerializer(conversation)
         return Response(serializer.data)
 
-
-# yourapp/views.py
-
-class AgentToolAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        tool_name = request.data.get("tool_name")
-        arguments = request.data.get("arguments", {})
-        
-        tool_function = TOOL_REGISTRY.get(tool_name)
-        if not tool_function:
-            return Response({"error": f"Tool '{tool_name}' not found."}, status=404)
-        
-        try:
-            result = tool_function(**arguments)
-            return Response(result)
-
-        # --- MODIFIED ERROR HANDLING BLOCK ---
-        except ValueError as e:
-            # Catch the specific error from our date parsing
-            return Response({
-                "status": "error",
-                "error_type": "VALIDATION_ERROR",
-                "message": "One of the provided arguments has an invalid format.",
-                "details": str(e) # The message from the exception, e.g., "Invalid date format..."
-            }, status=400)
-            
-        except TypeError as e:
-            # This catches missing or incorrect arguments
-            return Response({
-                "status": "error",
-                "error_type": "ARGUMENT_ERROR",
-                "message": "Missing or incorrect arguments for the tool.",
-                "details": str(e) # e.g., "list_tasks() missing 1 required positional argument: 'end_date_str'"
-            }, status=400)
-        # --- END OF MODIFICATION ---
-            
-        except Exception as e:
-            return Response({"error": f"An unexpected error occurred: {e}"}, status=500)
