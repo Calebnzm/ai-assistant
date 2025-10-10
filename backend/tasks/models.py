@@ -3,6 +3,11 @@ from django.conf import settings
 from datetime import date, timedelta
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField
+from pgvector.django import VectorField, HnswIndex
+from sentence_transformers import SentenceTransformer
+
+embdedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 class Task(models.Model):
     user = models.ForeignKey(
@@ -41,6 +46,38 @@ class Task(models.Model):
         blank=True,
         null=True
     )
+    embedding = VectorField(dimensions=384, blank=True, null=True)
+
+    def generate_embedding(self):
+        "Generates a text block and its embedding"
+
+        parts = [self.title]
+
+        if self.description:
+            parts.append(self.description)
+        
+        if self.tags and isinstance(self.tags, list):
+            tag_string = " ".join(self.tags)
+            parts.append(f"Tags: {tag_string}")
+
+        combined_text = ". ".join(parts)
+
+        return embdedding_model.encode(combined_text)
+    
+    def save(self, *args, **kwargs):
+        "Generate embeddings before saving task"
+        self.embedding = self.generate_embedding()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        "Index for faster similarity searches"
+        indexes = [
+            HnswIndex(
+                name="task_embedding_index",
+                fields=["embedding"],
+                opclasses=["vector_cosine_ops"],
+            )
+        ]
 
     def mark_completed(self):
         today = timezone.localdate()

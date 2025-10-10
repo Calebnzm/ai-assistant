@@ -4,6 +4,10 @@ from api.models import User
 from datetime import date, datetime
 from tasks.serializers import ActivityUpdateValidatorSerializer, ActivityValidatorSerializer
 from rest_framework.exceptions import ValidationError
+from sentence_transformers import SentenceTransformer
+from pgvector.django import CosineDistance
+
+embdedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def list_activity(user_id, start_date_str: str, end_date_str: str) -> list:
     "A tool to get the task list for a given date"
@@ -107,3 +111,46 @@ def delete_activity(user_id, task_id: int) -> dict:
     except Exception as e:
         return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
 
+
+
+def search_activities(user_id, search_phrase: str) -> dict:
+    "A semantic search tool to search for a task using a phrase"
+
+    try:
+
+        user = User.objects.get(pk=user_id)
+        if not search_phrase:
+            return {"status": "error", "message": "A search parameter is required."}
+        
+        search_phrase_embedding = embdedding_model.encode(search_phrase)
+
+        tasks = (
+            Task.objects.filter(user=user).annotate(
+                distance=CosineDistance("embedding", search_phrase_embedding)
+            )
+            .order_by('distance')[:5]
+        )
+
+        results = [
+            {
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+                "created": task.created_at,
+                "due_date": task.due_date,
+                "completed": task.is_completed,
+                "task type": task.type,
+                "tags": task.tags or [],
+                "streak": task.streak if task.type in ["habit", "project"] else "Not valid for a task",
+                "Number of days Completed": len(task.streak_dates) if task.type in ["habit", "project"] else "Not valid for a task",
+                "similarity": f"{(1 - task.distance) * 100}%"
+            }
+            for task in tasks
+        ]
+
+        return {"tasks": results}
+    
+    except User.DoesNotExist:
+        return {"status": "error", "message": "User not found."}
+    except Exception as e:
+        return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}

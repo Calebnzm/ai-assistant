@@ -1,4 +1,4 @@
-from .in_house_tools import list_activity, create_activity, edit_activity, delete_activity
+from .in_house_tools import list_activity, create_activity, edit_activity, delete_activity, search_activities
 from google.generativeai import types
 
 TOOL_SCHEMAS = [
@@ -23,6 +23,17 @@ TOOL_SCHEMAS = [
                     "task_id": {"type": "integer", "description": "The unique ID of the task to edit."},
                 },
                 "required" : ["task_id"]
+            }
+        },
+        {
+            "name": "search_activities",
+            "description":"Searches for an activity based on a search phrase",
+            "parameters": {
+                "type": "object",
+                "properties":{
+                    "search_phrase": {"type": "string", "description": "The search phrase to search the activity with"},
+                },
+                "required" : ["search_phrase"]
             }
         },
         { 
@@ -67,5 +78,6 @@ TOOL_REGISTRY = {
     "list_activity": list_activity,
     "create_activity": create_activity,
     "edit_task": edit_activity,
-    "delete_activity": delete_activity
+    "delete_activity": delete_activity,
+    "search_activities": search_activities  
 }
