@@ -312,7 +312,6 @@ export default function ActivityDetails() {
                     )}
 
                     <div className='task-stats'>
-
                     </div>
                 </div>
             </div>

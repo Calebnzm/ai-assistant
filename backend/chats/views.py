@@ -1,6 +1,6 @@
 
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai
+from google.genai import types
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -9,13 +9,13 @@ from .serializers import ConversationSerializer
 from django.utils import timezone
 from datetime import timedelta
 from dotenv import load_dotenv
+from tools.tool_registry import TOOL_REGISTRY, TOOL_SCHEMAS
+import requests
 import os
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel("gemini-2.5-flash")
 
 class ConversationAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -62,16 +62,62 @@ class ConversationAPIView(APIView):
             for msg in conversation.messages.all().order_by("created_at")
         ]
 
-        # Add system prompt at the start
-        contents = [{"role": "user", "parts": [{"text": system_prompt}]}] + history
+        agent = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        tools = types.Tool(function_declarations=TOOL_SCHEMAS)
 
-        # Generate model response
-        response = model.generate_content(
-            contents=contents
+        response = agent.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=history,
+            config=types.GenerateContentConfig(
+                tools=[tools],
+                system_instruction=system_prompt
+            )
         )
 
-        assistant_message = response.text
+        while True:
 
+            if response.function_calls:
+                results = []
+                call_logs = []
+                for function_call in response.function_calls:
+                    tool_name = function_call.name
+                    tool_args = {key: value for key, value in function_call.args.items()}
+                    tool_args["user_id"] = user.id
+
+                    full_tool_url = f"{request.scheme}://{request.get_host()}/api/chats/agent/execute-tool/"
+
+
+                    api_response = requests.post(
+                        full_tool_url, 
+                        json={"tool_name": tool_name, "arguments": tool_args},
+                        headers={"Authorization": request.headers.get("Authorization")}
+                    )
+                    tool_result = api_response.json()
+                    print(tool_result)
+                    function_response_part = types.Part.from_function_response(
+                        name=function_call.name,
+                        response=tool_result,
+                    )
+                    function_response_content = types.Content(
+                        role='tool', parts=[function_response_part]
+                    )
+                    history.append(function_response_content)
+
+                response = agent.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=history,
+                    config=types.GenerateContentConfig(
+                        tools=[tools],
+                        system_instruction=system_prompt
+                    )
+                )
+
+                continue
+            else:
+                break
+
+        print(response.text)
+        assistant_message = response.text
         ChatMessage.objects.create(conversation=conversation, role="model", content=assistant_message)
 
         conversation.refresh_expiry(timeout=timeout_seconds)
@@ -108,3 +154,43 @@ class ActiveConversationAPIView(APIView):
         serializer = ConversationSerializer(conversation)
         return Response(serializer.data)
 
+
+# yourapp/views.py
+
+class AgentToolAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        tool_name = request.data.get("tool_name")
+        arguments = request.data.get("arguments", {})
+        
+        tool_function = TOOL_REGISTRY.get(tool_name)
+        if not tool_function:
+            return Response({"error": f"Tool '{tool_name}' not found."}, status=404)
+        
+        try:
+            result = tool_function(**arguments)
+            return Response(result)
+
+        # --- MODIFIED ERROR HANDLING BLOCK ---
+        except ValueError as e:
+            # Catch the specific error from our date parsing
+            return Response({
+                "status": "error",
+                "error_type": "VALIDATION_ERROR",
+                "message": "One of the provided arguments has an invalid format.",
+                "details": str(e) # The message from the exception, e.g., "Invalid date format..."
+            }, status=400)
+            
+        except TypeError as e:
+            # This catches missing or incorrect arguments
+            return Response({
+                "status": "error",
+                "error_type": "ARGUMENT_ERROR",
+                "message": "Missing or incorrect arguments for the tool.",
+                "details": str(e) # e.g., "list_tasks() missing 1 required positional argument: 'end_date_str'"
+            }, status=400)
+        # --- END OF MODIFICATION ---
+            
+        except Exception as e:
+            return Response({"error": f"An unexpected error occurred: {e}"}, status=500)
