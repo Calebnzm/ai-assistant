@@ -12,6 +12,7 @@ import AddActivity from './pages/AddActivity.jsx'
 import Chat from './pages/Chat.jsx'
 import ChatMessage from './components/ChatMessage.jsx'
 import ErrorMessage from './components/ErrorMessage.jsx'
+import GoogleSuccess from './pages/GoogleSuccess.jsx'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -24,6 +25,7 @@ function App() {
         <Route path='/addActivity' element={<AddActivity />}></Route>
         <Route path='/profile' element={<Profile />}></Route>
         <Route path='/chatAssistant' element={<Chat />}></Route>
+        <Route path='/google/success' element={<GoogleSuccess />}></Route>
       </Routes>
   )
 }

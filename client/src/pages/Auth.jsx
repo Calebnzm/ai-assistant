@@ -19,8 +19,8 @@ export default function Auth() {
     })
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-    const signupUrl = "https://ai-assistant-d27n.onrender.com/api/auth/register/"
-    const loginUrl = "https://ai-assistant-d27n.onrender.com/api/auth/login/"
+    const signupUrl = "http://127.0.0.1:8000/api/auth/register/"
+    const loginUrl = "http://127.0.0.1:8000/api/auth/login/"
     const navigate = useNavigate();
 
 

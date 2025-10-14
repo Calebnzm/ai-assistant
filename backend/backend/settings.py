@@ -32,7 +32,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
-
+GOOGLE_CLIENT_ID = "818922023116-tqqadse4n03d5784nmr8689nf64lo62o.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'chats',
+    'GoogleAuth'
 ]
 
 AUTH_USER_MODEL = "api.User"

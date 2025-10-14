@@ -94,6 +94,17 @@ export default function Profile() {
         setLoading(false);
     }
 
+    const handleGoogleAuth = async () => {
+    try {
+        const response = await api.get("/GoogleAuth/start/");
+        const { auth_url } = response.data;
+        window.location.href = auth_url;
+    } catch (error) {
+        console.error("Failed to start Google OAuth:", error);
+        alert("Could not start Google Authorization");
+    }
+    };
+
     const initials = user_profile.first_name.charAt(0).toUpperCase() + user_profile.last_name.charAt(0).toUpperCase()
 
     const achievementBars = user_profile.achievements.map((info, index) => {
@@ -198,15 +209,11 @@ export default function Profile() {
                                 </button>
                             </div>
                         )}
-                    {/* <div className="theme two">
-                        <h3>Dark Mode</h3>
-                        <div className="checkbox-section">
-                            <label className="custom-checkbox">
-                                {darkMode ? (<input type="checkbox" checked/>) : (<input type="checkbox" />)}
-                                <span className="checkmark"></span>
-                            </label>
-                        </div>
-                    </div> */}
+                    <div className="theme two">
+                        <button onClick={handleGoogleAuth}>
+                            Authenticate and Authorize Google Account
+                        </button>
+                    </div>
                     <div className="achievements three">
                         <h3>Achievements</h3>
                         {achievementBars}

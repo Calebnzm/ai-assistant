@@ -1,0 +1,112 @@
+import json
+import os
+from django.conf import settings
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.core.cache import cache 
+from django.utils.crypto import get_random_string
+
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+
+from google_auth_oauthlib.flow import Flow
+
+from api.models import User
+from .models import GoogleCredential
+
+os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
+
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/calendar.events",
+]
+
+def _get_client_config():
+    return {
+        "web": {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+    }
+
+class GoogleAuthStart(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        flow = Flow.from_client_config(
+            _get_client_config(),
+            scopes=SCOPES,
+            redirect_uri=request.build_absolute_uri(reverse("google_oauth_callback")),
+        )
+
+        auth_url, returned_state = flow.authorization_url(
+            access_type="offline",
+            include_granted_scopes="true",
+            prompt="consent",
+        )
+
+        cache_key = f"google_oauth_state_{returned_state}"
+        cache.set(cache_key, user.id, timeout=600)
+
+        return Response({"auth_url": auth_url, "state": returned_state})
+
+class GoogleOAuthCallback(APIView):
+    """
+    Called by Google (no auth attached). We look up the state in cache to find the user,
+    exchange the code for tokens and save credentials tied to that user.
+    Then redirect the browser back to frontend (profile/success page).
+    """
+    permission_classes = [AllowAny] 
+
+    def get(self, request):
+        state = request.GET.get("state")
+        if not state:
+            return Response({"error": "Missing state"}, status=status.HTTP_400_BAD_REQUEST)
+
+        cache_key = f"google_oauth_state_{state}"
+        user_id = cache.get(cache_key)
+        if not user_id:
+            return Response({"error": "Invalid or expired state"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+        flow = Flow.from_client_config(
+            _get_client_config(),
+            scopes=SCOPES,
+            state=state,
+            redirect_uri=request.build_absolute_uri(reverse("google_oauth_callback")),
+        )
+
+        try:
+            flow.fetch_token(authorization_response=request.build_absolute_uri())
+        except Exception as exc:
+            return Response({"error": "Failed to fetch token", "details": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        creds = flow.credentials
+
+        obj, created = GoogleCredential.objects.update_or_create(
+            user=user,
+            defaults={
+                "token": creds.token,
+                "refresh_token": creds.refresh_token,
+                "token_uri": creds.token_uri,
+                "client_id": creds.client_id,
+                "client_secret": creds.client_secret,
+                "scopes": json.dumps(list(creds.scopes or [])),
+                "expiry": creds.expiry,
+            },
+        )
+
+        cache.delete(cache_key)
+
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+        success_url = f"{frontend_url.rstrip('/')}/google/success"
+        return redirect(success_url)
