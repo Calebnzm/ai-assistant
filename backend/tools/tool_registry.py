@@ -1,5 +1,6 @@
 from .in_house_tools import list_activity, create_activity, edit_activity, delete_activity, search_activities
 from .gmail_tools import search_gmail_messages, get_gmail_message_content, get_gmail_messages_content_batch, get_gmail_thread_content, get_gmail_threads_content_batch, list_gmail_labels, manage_gmail_label, modify_gmail_message_labels, batch_modify_gmail_message_labels, send_gmail_message, draft_gmail_message
+from .calendar_tools import create_event, modify_event, delete_event, list_calendars, get_events
 from google.generativeai import types
 
 TOOL_SCHEMAS = [
@@ -228,6 +229,229 @@ TOOL_SCHEMAS = [
                 "required": ["subject","body"]
             }
         },
+
+        {
+            "name": "list_calendars",
+            "description": "List calendars the user has access to. Returns id, summary, primary flag and timezone.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        },
+
+        {
+            "name": "get_events",
+            "description": "Get events from a calendar. Provide either event_id (single event) or time_min/time_max and optional query.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calendar_id": {
+                        "type": "string",
+                        "description": "Calendar ID (default 'primary')."
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "Specific event ID to fetch (when provided, time range and query are ignored)."
+                    },
+                    "time_min": {
+                        "type": "string",
+                        "description": "Start of time range (RFC3339 or YYYY-MM-DD)."
+                    },
+                    "time_max": {
+                        "type": "string",
+                        "description": "End of time range (RFC3339 or YYYY-MM-DD)."
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Max number of events to return (default 25)."
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "Keyword to search within events (summary/description/location)."
+                    },
+                    "detailed": {
+                        "type": "boolean",
+                        "description": "Whether to return detailed event fields (description, attendees, raw)."
+                    }
+                },
+                "required": []
+            }
+        },
+
+        {
+            "name": "create_event",
+            "description": "Create an event. Required: summary, start_time, end_time. Accepts attendees, reminders, attachments, timezone, and optional Google Meet.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "calendar_id": {
+                        "type": "string",
+                        "description": "Calendar ID (default 'primary')."
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "Event title."
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "Start time (RFC3339 like 2023-10-27T10:00:00Z or YYYY-MM-DD for all-day)."
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "End time (RFC3339 or YYYY-MM-DD for all-day)."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Event description."
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Event location."
+                    },
+                    "attendees": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of attendee email addresses."
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "description": "Timezone (e.g., 'America/New_York')."
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Drive URLs or file IDs to attach (optional)."
+                    },
+                    "add_google_meet": {
+                        "type": "boolean",
+                        "description": "If true, add a Google Meet conference."
+                    },
+                    "reminders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "method": {
+                                    "type": "string",
+                                    "enum": ["popup", "email"],
+                                    "description": "Reminder method: 'popup' or 'email'."
+                                },
+                                "minutes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 40320,
+                                    "description": "Minutes before the event."
+                                }
+                            },
+                            "required": ["method", "minutes"]
+                        },
+                        "description": "List of reminder objects. Each: {method:'popup'|'email', minutes:int}. Max 5 recommended."
+                    },
+                    "use_default_reminders": {
+                        "type": "boolean",
+                        "description": "Whether to use calendar default reminders (true/false)."
+                    }
+                },
+                "required": ["summary", "start_time", "end_time"]
+            }
+        },
+
+        {
+            "name": "modify_event",
+            "description": "Modify event fields. Provide event_id and any fields to update (summary, start_time, end_time, etc).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "event_id": {
+                        "type": "string",
+                        "description": "ID of the event to modify."
+                    },
+                    "calendar_id": {
+                        "type": "string",
+                        "description": "Calendar ID (default 'primary')."
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "New event title."
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "New start time (RFC3339 or YYYY-MM-DD)."
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "New end time (RFC3339 or YYYY-MM-DD)."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description."
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "New location."
+                    },
+                    "attendees": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of attendee email addresses (replaces existing if provided)."
+                    },
+                    "timezone": {
+                        "type": "string",
+                        "description": "Timezone to apply to provided dateTimes."
+                    },
+                    "add_google_meet": {
+                        "type": "boolean",
+                        "description": "True to add meet, false to remove, omit to leave unchanged."
+                    },
+                    "reminders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "method": {
+                                    "type": "string",
+                                    "enum": ["popup", "email"],
+                                    "description": "Reminder method: 'popup' or 'email'."
+                                },
+                                "minutes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 40320,
+                                    "description": "Minutes before the event."
+                                }
+                            },
+                            "required": ["method", "minutes"]
+                        },
+                        "description": "List of reminder objects to replace existing reminders."
+                    },
+                    "use_default_reminders": {
+                        "type": "boolean",
+                        "description": "Whether to use calendar default reminders (true/false)."
+                    }
+                },
+                "required": ["event_id"]
+            }
+        },
+
+        {
+            "name": "delete_event",
+            "description": "Delete an event. Provide event_id and optional calendar_id (default 'primary').",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "event_id": {
+                        "type": "string",
+                        "description": "ID of the event to delete."
+                    },
+                    "calendar_id": {
+                        "type": "string",
+                        "description": "Calendar ID (default 'primary')."
+                    }
+                },
+                "required": ["event_id"]
+            }
+        },
     ]
 
 TOOL_REGISTRY = {
@@ -246,5 +470,10 @@ TOOL_REGISTRY = {
     "modify_gmail_message_labels": modify_gmail_message_labels,
     "batch_modify_gmail_message_labels": batch_modify_gmail_message_labels,
     "send_gmail_message": send_gmail_message,
-    "draft_gmail_message": draft_gmail_message
+    "draft_gmail_message": draft_gmail_message,
+    "list_calendars": list_calendars,
+    "get_events": get_events,
+    "create_event": create_event,
+    "modify_event": modify_event,
+    "delete_event": delete_event
 }
