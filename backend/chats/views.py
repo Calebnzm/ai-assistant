@@ -42,13 +42,12 @@ class ConversationAPIView(APIView):
             )
 
         system_prompt = f"""
-            You are an AI Personal Assistant for {user.first_name}.
+            You are an AI Personal Assistant for a user named:  {user.first_name}.
 
             These are your tasks:
                 1. Provide the user with any assistance they might require
                 2. Schedule activities for the user. They will have to give you all the neccessary info to do that.
-                3. Monitor the user's email, calender, and inform them of any impending tasks and activities, as well as schedule them, as they come.
-                4. Manage email correspondece for the user.
+                3. Monitor the user's Gmail
 
             When interacting with the client.
                 1. Do not provide any code, or confidential information.
