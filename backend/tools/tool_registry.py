@@ -1,6 +1,26 @@
 from .in_house_tools import list_activity, create_activity, edit_activity, delete_activity, search_activities
-from .gmail_tools import search_gmail_messages, get_gmail_message_content, get_gmail_messages_content_batch, get_gmail_thread_content, get_gmail_threads_content_batch, list_gmail_labels, manage_gmail_label, modify_gmail_message_labels, batch_modify_gmail_message_labels, send_gmail_message, draft_gmail_message
+from .gmail_tools import (
+    search_gmail_messages,
+    get_gmail_message_content,
+    get_gmail_messages_content_batch,
+    get_gmail_thread_content,
+    get_gmail_threads_content_batch,
+    list_gmail_labels,
+    manage_gmail_label,
+    modify_gmail_message_labels,
+    batch_modify_gmail_message_labels,
+    send_gmail_message,
+    draft_gmail_message,
+)
 from .calendar_tools import create_event, modify_event, delete_event, list_calendars, get_events
+from .google_drive.tools import (
+    search_drive_files,
+    get_drive_file_content,
+    list_drive_items,
+    create_drive_file,
+    get_drive_file_permissions,
+    check_drive_file_public_access,
+)
 from google.generativeai import types
 
 TOOL_SCHEMAS = [
@@ -230,226 +250,310 @@ TOOL_SCHEMAS = [
             }
         },
 
+        # {
+        #     "name": "list_calendars",
+        #     "description": "List calendars the user has access to. Returns id, summary, primary flag and timezone.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {},
+        #         "required": []
+        #     }
+        # },
+
+        # {
+        #     "name": "get_events",
+        #     "description": "Get events from a calendar. Provide either event_id (single event) or time_min/time_max and optional query.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "calendar_id": {
+        #                 "type": "string",
+        #                 "description": "Calendar ID (default 'primary')."
+        #             },
+        #             "event_id": {
+        #                 "type": "string",
+        #                 "description": "Specific event ID to fetch (when provided, time range and query are ignored)."
+        #             },
+        #             "time_min": {
+        #                 "type": "string",
+        #                 "description": "Start of time range (RFC3339 or YYYY-MM-DD)."
+        #             },
+        #             "time_max": {
+        #                 "type": "string",
+        #                 "description": "End of time range (RFC3339 or YYYY-MM-DD)."
+        #             },
+        #             "max_results": {
+        #                 "type": "integer",
+        #                 "description": "Max number of events to return (default 25)."
+        #             },
+        #             "query": {
+        #                 "type": "string",
+        #                 "description": "Keyword to search within events (summary/description/location)."
+        #             },
+        #             "detailed": {
+        #                 "type": "boolean",
+        #                 "description": "Whether to return detailed event fields (description, attendees, raw)."
+        #             }
+        #         },
+        #         "required": []
+        #     }
+        # },
+
+        # {
+        #     "name": "create_event",
+        #     "description": "Create an event. Required: summary, start_time, end_time. Accepts attendees, reminders, attachments, timezone, and optional Google Meet.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "calendar_id": {
+        #                 "type": "string",
+        #                 "description": "Calendar ID (default 'primary')."
+        #             },
+        #             "summary": {
+        #                 "type": "string",
+        #                 "description": "Event title."
+        #             },
+        #             "start_time": {
+        #                 "type": "string",
+        #                 "description": "Start time (RFC3339 like 2023-10-27T10:00:00Z or YYYY-MM-DD for all-day)."
+        #             },
+        #             "end_time": {
+        #                 "type": "string",
+        #                 "description": "End time (RFC3339 or YYYY-MM-DD for all-day)."
+        #             },
+        #             "description": {
+        #                 "type": "string",
+        #                 "description": "Event description."
+        #             },
+        #             "location": {
+        #                 "type": "string",
+        #                 "description": "Event location."
+        #             },
+        #             "attendees": {
+        #                 "type": "array",
+        #                 "items": {"type": "string"},
+        #                 "description": "List of attendee email addresses."
+        #             },
+        #             "timezone": {
+        #                 "type": "string",
+        #                 "description": "Timezone (e.g., 'America/New_York')."
+        #             },
+        #             "attachments": {
+        #                 "type": "array",
+        #                 "items": {"type": "string"},
+        #                 "description": "Drive URLs or file IDs to attach (optional)."
+        #             },
+        #             "add_google_meet": {
+        #                 "type": "boolean",
+        #                 "description": "If true, add a Google Meet conference."
+        #             },
+        #             "reminders": {
+        #                 "type": "array",
+        #                 "items": {
+        #                     "type": "object",
+        #                     "properties": {
+        #                         "method": {
+        #                             "type": "string",
+        #                             "enum": ["popup", "email"],
+        #                             "description": "Reminder method: 'popup' or 'email'."
+        #                         },
+        #                         "minutes": {
+        #                             "type": "integer",
+        #                             "minimum": 0,
+        #                             "maximum": 40320,
+        #                             "description": "Minutes before the event."
+        #                         }
+        #                     },
+        #                     "required": ["method", "minutes"]
+        #                 },
+        #                 "description": "List of reminder objects. Each: {method:'popup'|'email', minutes:int}. Max 5 recommended."
+        #             },
+        #             "use_default_reminders": {
+        #                 "type": "boolean",
+        #                 "description": "Whether to use calendar default reminders (true/false)."
+        #             }
+        #         },
+        #         "required": ["summary", "start_time", "end_time"]
+        #     }
+        # },
+
+        # {
+        #     "name": "modify_event",
+        #     "description": "Modify event fields. Provide event_id and any fields to update (summary, start_time, end_time, etc).",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "event_id": {
+        #                 "type": "string",
+        #                 "description": "ID of the event to modify."
+        #             },
+        #             "calendar_id": {
+        #                 "type": "string",
+        #                 "description": "Calendar ID (default 'primary')."
+        #             },
+        #             "summary": {
+        #                 "type": "string",
+        #                 "description": "New event title."
+        #             },
+        #             "start_time": {
+        #                 "type": "string",
+        #                 "description": "New start time (RFC3339 or YYYY-MM-DD)."
+        #             },
+        #             "end_time": {
+        #                 "type": "string",
+        #                 "description": "New end time (RFC3339 or YYYY-MM-DD)."
+        #             },
+        #             "description": {
+        #                 "type": "string",
+        #                 "description": "New description."
+        #             },
+        #             "location": {
+        #                 "type": "string",
+        #                 "description": "New location."
+        #             },
+        #             "attendees": {
+        #                 "type": "array",
+        #                 "items": {"type": "string"},
+        #                 "description": "List of attendee email addresses (replaces existing if provided)."
+        #             },
+        #             "timezone": {
+        #                 "type": "string",
+        #                 "description": "Timezone to apply to provided dateTimes."
+        #             },
+        #             "add_google_meet": {
+        #                 "type": "boolean",
+        #                 "description": "True to add meet, false to remove, omit to leave unchanged."
+        #             },
+        #             "reminders": {
+        #                 "type": "array",
+        #                 "items": {
+        #                     "type": "object",
+        #                     "properties": {
+        #                         "method": {
+        #                             "type": "string",
+        #                             "enum": ["popup", "email"],
+        #                             "description": "Reminder method: 'popup' or 'email'."
+        #                         },
+        #                         "minutes": {
+        #                             "type": "integer",
+        #                             "minimum": 0,
+        #                             "maximum": 40320,
+        #                             "description": "Minutes before the event."
+        #                         }
+        #                     },
+        #                     "required": ["method", "minutes"]
+        #                 },
+        #                 "description": "List of reminder objects to replace existing reminders."
+        #             },
+        #             "use_default_reminders": {
+        #                 "type": "boolean",
+        #                 "description": "Whether to use calendar default reminders (true/false)."
+        #             }
+        #         },
+        #         "required": ["event_id"]
+        #     }
+        # },
+
+        # {
+        #     "name": "delete_event",
+        #     "description": "Delete an event. Provide event_id and optional calendar_id (default 'primary').",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "event_id": {
+        #                 "type": "string",
+        #                 "description": "ID of the event to delete."
+        #             },
+        #             "calendar_id": {
+        #                 "type": "string",
+        #                 "description": "Calendar ID (default 'primary')."
+        #             }
+        #         },
+        #         "required": ["event_id"]
+        #     }
+        # },
+
         {
-            "name": "list_calendars",
-            "description": "List calendars the user has access to. Returns id, summary, primary flag and timezone.",
+            "name": "search_drive_files",
+            "description": "Search files and folders in Google Drive using Drive query syntax or free text (wrapped in fullText). Returns list of files with id, name, mimeType, modifiedTime and webViewLink.",
             "parameters": {
                 "type": "object",
-                "properties": {},
-                "required": []
+                "properties": {
+                    "query": {"type": "string", "description": "Drive query or free-text search (will be wrapped in fullText contains if needed)."},
+                    "page_size": {"type": "integer", "description": "Maximum number of files to return (default 10)."},
+                    "drive_id": {"type": "string", "description": "Optional shared drive ID to scope search to."},
+                    "include_items_from_all_drives": {"type": "boolean", "description": "Whether to include items from all drives/shared drives."},
+                    "corpora": {"type": "string", "description": "Optional corpora parameter ('user','drive','domain','allDrives')."}
+                },
+                "required": ["query"]
             }
         },
 
         {
-            "name": "get_events",
-            "description": "Get events from a calendar. Provide either event_id (single event) or time_min/time_max and optional query.",
+            "name": "get_drive_file_content",
+            "description": "Get file content by Drive file ID. Exports native Google files, extracts Office files, or downloads raw bytes and attempts UTF-8 decode.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "calendar_id": {
-                        "type": "string",
-                        "description": "Calendar ID (default 'primary')."
-                    },
-                    "event_id": {
-                        "type": "string",
-                        "description": "Specific event ID to fetch (when provided, time range and query are ignored)."
-                    },
-                    "time_min": {
-                        "type": "string",
-                        "description": "Start of time range (RFC3339 or YYYY-MM-DD)."
-                    },
-                    "time_max": {
-                        "type": "string",
-                        "description": "End of time range (RFC3339 or YYYY-MM-DD)."
-                    },
-                    "max_results": {
-                        "type": "integer",
-                        "description": "Max number of events to return (default 25)."
-                    },
-                    "query": {
-                        "type": "string",
-                        "description": "Keyword to search within events (summary/description/location)."
-                    },
-                    "detailed": {
-                        "type": "boolean",
-                        "description": "Whether to return detailed event fields (description, attendees, raw)."
-                    }
+                    "file_id": {"type": "string", "description": "Drive file ID to fetch content for."}
+                },
+                "required": ["file_id"]
+            }
+        },
+
+        {
+            "name": "list_drive_items",
+            "description": "List items in a folder (supports shared drives).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "folder_id": {"type": "string", "description": "Folder ID to list (default 'root')."},
+                    "page_size": {"type": "integer", "description": "Maximum items to return (default 100)."},
+                    "drive_id": {"type": "string", "description": "Optional shared drive ID to scope listing."},
+                    "include_items_from_all_drives": {"type": "boolean", "description": "Whether to include items from all drives/shared drives."},
+                    "corpora": {"type": "string", "description": "Optional corpora parameter ('user','drive','domain','allDrives')."}
                 },
                 "required": []
             }
         },
 
         {
-            "name": "create_event",
-            "description": "Create an event. Required: summary, start_time, end_time. Accepts attendees, reminders, attachments, timezone, and optional Google Meet.",
+            "name": "create_drive_file",
+            "description": "Create a file in Drive. Provide file_name and either content or fileUrl (server validates presence of content/fileUrl). Returns created file id and web link.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "calendar_id": {
-                        "type": "string",
-                        "description": "Calendar ID (default 'primary')."
-                    },
-                    "summary": {
-                        "type": "string",
-                        "description": "Event title."
-                    },
-                    "start_time": {
-                        "type": "string",
-                        "description": "Start time (RFC3339 like 2023-10-27T10:00:00Z or YYYY-MM-DD for all-day)."
-                    },
-                    "end_time": {
-                        "type": "string",
-                        "description": "End time (RFC3339 or YYYY-MM-DD for all-day)."
-                    },
-                    "description": {
-                        "type": "string",
-                        "description": "Event description."
-                    },
-                    "location": {
-                        "type": "string",
-                        "description": "Event location."
-                    },
-                    "attendees": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of attendee email addresses."
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "description": "Timezone (e.g., 'America/New_York')."
-                    },
-                    "attachments": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Drive URLs or file IDs to attach (optional)."
-                    },
-                    "add_google_meet": {
-                        "type": "boolean",
-                        "description": "If true, add a Google Meet conference."
-                    },
-                    "reminders": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "method": {
-                                    "type": "string",
-                                    "enum": ["popup", "email"],
-                                    "description": "Reminder method: 'popup' or 'email'."
-                                },
-                                "minutes": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 40320,
-                                    "description": "Minutes before the event."
-                                }
-                            },
-                            "required": ["method", "minutes"]
-                        },
-                        "description": "List of reminder objects. Each: {method:'popup'|'email', minutes:int}. Max 5 recommended."
-                    },
-                    "use_default_reminders": {
-                        "type": "boolean",
-                        "description": "Whether to use calendar default reminders (true/false)."
-                    }
+                    "file_name": {"type": "string", "description": "Name for the new file."},
+                    "content": {"type": "string", "description": "Optional file content as text."},
+                    "folder_id": {"type": "string", "description": "Parent folder ID (default 'root')."},
+                    "mime_type": {"type": "string", "description": "MIME type of file (default 'text/plain')."},
+                    "fileUrl": {"type": "string", "description": "Optional URL to fetch file contents from."}
                 },
-                "required": ["summary", "start_time", "end_time"]
+                "required": ["file_name"]
             }
         },
 
         {
-            "name": "modify_event",
-            "description": "Modify event fields. Provide event_id and any fields to update (summary, start_time, end_time, etc).",
+            "name": "get_drive_file_permissions",
+            "description": "Get a file's metadata and permissions, returning structured details about sharing and URLs.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "event_id": {
-                        "type": "string",
-                        "description": "ID of the event to modify."
-                    },
-                    "calendar_id": {
-                        "type": "string",
-                        "description": "Calendar ID (default 'primary')."
-                    },
-                    "summary": {
-                        "type": "string",
-                        "description": "New event title."
-                    },
-                    "start_time": {
-                        "type": "string",
-                        "description": "New start time (RFC3339 or YYYY-MM-DD)."
-                    },
-                    "end_time": {
-                        "type": "string",
-                        "description": "New end time (RFC3339 or YYYY-MM-DD)."
-                    },
-                    "description": {
-                        "type": "string",
-                        "description": "New description."
-                    },
-                    "location": {
-                        "type": "string",
-                        "description": "New location."
-                    },
-                    "attendees": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of attendee email addresses (replaces existing if provided)."
-                    },
-                    "timezone": {
-                        "type": "string",
-                        "description": "Timezone to apply to provided dateTimes."
-                    },
-                    "add_google_meet": {
-                        "type": "boolean",
-                        "description": "True to add meet, false to remove, omit to leave unchanged."
-                    },
-                    "reminders": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "method": {
-                                    "type": "string",
-                                    "enum": ["popup", "email"],
-                                    "description": "Reminder method: 'popup' or 'email'."
-                                },
-                                "minutes": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 40320,
-                                    "description": "Minutes before the event."
-                                }
-                            },
-                            "required": ["method", "minutes"]
-                        },
-                        "description": "List of reminder objects to replace existing reminders."
-                    },
-                    "use_default_reminders": {
-                        "type": "boolean",
-                        "description": "Whether to use calendar default reminders (true/false)."
-                    }
+                    "file_id": {"type": "string", "description": "Drive file ID."}
                 },
-                "required": ["event_id"]
+                "required": ["file_id"]
             }
         },
 
         {
-            "name": "delete_event",
-            "description": "Delete an event. Provide event_id and optional calendar_id (default 'primary').",
+            "name": "check_drive_file_public_access",
+            "description": "Search for file by name and check if 'Anyone with the link' public access is enabled.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "event_id": {
-                        "type": "string",
-                        "description": "ID of the event to delete."
-                    },
-                    "calendar_id": {
-                        "type": "string",
-                        "description": "Calendar ID (default 'primary')."
-                    }
+                    "file_name": {"type": "string", "description": "Name of the file to search for."}
                 },
-                "required": ["event_id"]
+                "required": ["file_name"]
             }
         },
     ]
@@ -475,5 +579,11 @@ TOOL_REGISTRY = {
     "get_events": get_events,
     "create_event": create_event,
     "modify_event": modify_event,
-    "delete_event": delete_event
+    "delete_event": delete_event,
+    "search_drive_files": search_drive_files,
+    "get_drive_file_content": get_drive_file_content,
+    "list_drive_items": list_drive_items,
+    "create_drive_file": create_drive_file,
+    "get_drive_file_permissions": get_drive_file_permissions,
+    "check_drive_file_public_access": check_drive_file_public_access,
 }
