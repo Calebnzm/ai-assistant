@@ -2,13 +2,14 @@ import json
 import os
 import requests
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from chats.views import ConversationAPIView
 from dotenv import load_dotenv
 from .models import TelegramLink
+import re
 
 load_dotenv()
 User = get_user_model()
@@ -50,27 +51,70 @@ def check_telegram_link_status(request):
 
 @csrf_exempt
 def telegram_webhook(request):
+    """Handle incoming Telegram updates:
+       - /link CODE -> use TelegramLink to attach telegram_id to user
+       - otherwise if chat is linked -> forward to ConversationAPIView
+       - otherwise instruct user to create a code in profile
+    """
     try:
-        data = json.loads(request.body)
-        message = data.get("message")
-        if not message:
-            return JsonResponse({"error": "No Message"}, status=400)
-        
-        chat_id = message["chat"]["id"]
-        text = message.get("text", "")
+        payload = json.loads(request.body)
+    except Exception as e:
+        print("telegram_webhook: bad json", e)
+        return HttpResponse(status=400)
 
-        user = User.objects.filter(telegram_id=str(chat_id)).first()
-        if not user:
-            return JsonResponse({"error": "No linked account. You are required to have an account and link it through the profile page"})
-        
+    message = payload.get("message") or payload.get("edited_message")
+    if not message:
+        return HttpResponse(status=200)
+
+    chat = message.get("chat", {})
+    chat_id = chat.get("id")
+    text = (message.get("text") or "").strip()
+
+    if not text:
+        send_telegram_message(chat_id, "I can only process text messages right now. Send /link <CODE> to link this chat.")
+        return JsonResponse({"ok": True})
+
+    m = re.match(r"^/link\s+([A-Za-z0-9]+)$", text)
+    if m:
+        code = m.group(1).upper()
+        try:
+            link = TelegramLink.objects.get(code=code)
+        except TelegramLink.DoesNotExist:
+            send_telegram_message(chat_id, "That link code was not found. Generate a new code on your profile page and try again.")
+            return JsonResponse({"ok": True})
+
+        if link.is_used:
+            send_telegram_message(chat_id, "This link code has already been used.")
+            return JsonResponse({"ok": True})
+        if link.is_expired():
+            send_telegram_message(chat_id, "This link code has expired. Please generate a new code on your profile page.")
+            return JsonResponse({"ok": True})
+
+        user = link.user
+        user.telegram_id = str(chat_id)
+        user.save(update_fields=["telegram_id"])
+        try:
+            link.mark_used(chat_id)
+        except Exception:
+            link.is_used = True
+            link.telegram_chat_id = str(chat_id)
+            link.save(update_fields=["is_used", "telegram_chat_id"])
+
+        send_telegram_message(chat_id, f"Success — this Telegram chat is now linked to {user.email}. You can now chat with your assistant from Telegram.")
+        return JsonResponse({"ok": True})
+
+    user = User.objects.filter(telegram_id=str(chat_id)).first()
+    if not user:
+        send_telegram_message(chat_id, "No linked account found. Visit your profile in the web app, click 'Link Telegram' and send /link <CODE> to this bot.")
+        return JsonResponse({"ok": True})
+
+    try:
         fake_request = type("FakeRequest", (), {"user": user, "data": {"message": text}})()
         response = ConversationAPIView().post(fake_request)
-        reply = response.data.get("content", "Unable to get response")
-
-        send_telegram_message(chat_id, reply)
-
-        return JsonResponse({"ok": True})
-    
+        reply = response.data.get("content", "Unable to get response from assistant.")
     except Exception as e:
-        print("Error in telegram_webhook", e)
-        return JsonResponse({"error": str(e)}, status=500)
+        print("Error forwarding to conversation view:", e)
+        reply = "Internal error while processing your message."
+
+    send_telegram_message(chat_id, reply)
+    return JsonResponse({"ok": True})

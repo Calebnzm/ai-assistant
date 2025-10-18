@@ -27,6 +27,10 @@ export default function Profile() {
         priority: "",
         bio: "",
     });
+    const [linking, setLinking] = useState(false);
+    const [linkCode, setLinkCode] = useState(null);
+    const [linkExpiresAt, setLinkExpiresAt] = useState(null);
+    const [linkMessage, setLinkMessage] = useState("");
 
 
     useEffect(() => {
@@ -116,6 +120,42 @@ export default function Profile() {
         localStorage.removeItem("refresh");
         window.location.href = "/";
     }
+
+    const handleStartTelegramLink = async () => {
+    try {
+        setLinking(true);
+        setLinkMessage("");
+        const response = await api.post("/telegram/link/start/");
+        const { code, expires_at, instructions } = response.data;
+        setLinkCode(code);
+        setLinkExpiresAt(expires_at);
+        setLinkMessage(instructions);
+    } catch (err) {
+        console.error("Failed to create link code:", err);
+        alert("Failed to create link code. Try again later.");
+    } finally {
+        setLinking(false);
+    }
+    };
+
+    const handleCheckLinkStatus = async () => {
+    try {
+        const response = await api.get("/telegram/link/status/");
+        if (response.data.linked) {
+        alert("Telegram linked successfully!");
+        const profile = await api.get("/auth/profile/");
+        setUserProfile(profile.data);
+        setLinkCode(null);
+        setLinkMessage("");
+        } else {
+        alert("Not linked yet. Make sure you sent the /link <CODE> message to the bot.");
+        }
+    } catch (err) {
+        console.error("Error checking link status:", err);
+        alert("Failed to check status. Try again later.");
+    }
+    };
+
 
 
     return (
@@ -213,6 +253,32 @@ export default function Profile() {
                         <button onClick={handleGoogleAuth}>
                             Authenticate and Authorize Google Account
                         </button>
+                         <div style={{ marginTop: 16 }}>
+                            {userProfile.telegram_id ? (
+                            <div>
+                                <p>Telegram linked: <strong>{userProfile.telegram_id}</strong></p>
+                            </div>
+                            ) : (
+                            <>
+                                {!linkCode ? (
+                                <button disabled={linking} onClick={handleStartTelegramLink}>
+                                    {linking ? "Creating code..." : "Link Telegram"}
+                                </button>
+                                ) : (
+                                <div style={{ marginTop: 8 }}>
+                                    <p>Send this message to the bot in Telegram:</p>
+                                    <pre style={{ padding: 8, background: "#f3f3f3" }}>{`/link ${linkCode}`}</pre>
+                                    <p>{linkMessage}</p>
+                                    <button onClick={handleCheckLinkStatus}>I've sent it — Check link</button>
+                                    <button onClick={() => { setLinkCode(null); setLinkMessage(""); }}>Cancel</button>
+                                    <div style={{ marginTop: 8 }}>
+                                    <small>Note: code expires at {new Date(linkExpiresAt).toLocaleString()}</small>
+                                    </div>
+                                </div>
+                                )}
+                            </>
+                            )}
+                        </div>
                     </div>
                     <div className="achievements three">
                         <h3>Achievements</h3>

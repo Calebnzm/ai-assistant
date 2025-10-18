@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1', "lenna-monadistic-stuart.ngrok-free.dev"]
 
 GOOGLE_CLIENT_ID = "818922023116-tqqadse4n03d5784nmr8689nf64lo62o.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "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"

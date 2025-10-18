@@ -22,7 +22,7 @@ class TelegramLink(models.Model):
         code = uuid.uuid4().hex[:10].upper()
         now = timezone.now()
         return cls.objects.create(
-            user-user,
+            user=user,
             code=code,
             expires_at = now + timedelta(minutes=ttl_minutes)
         )
