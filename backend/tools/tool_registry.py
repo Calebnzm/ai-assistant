@@ -12,6 +12,23 @@ from .gmail_tools import (
     send_gmail_message,
     draft_gmail_message,
 )
+
+from .google_docs.tools import (
+    search_docs,
+    get_doc_content,
+    list_docs_in_folder,
+    create_doc,
+    modify_doc_text,
+    find_and_replace_doc,
+    insert_doc_elements,
+    insert_doc_image,
+    update_doc_headers_footers,
+    batch_update_doc,
+    inspect_doc_structure,
+    create_table_with_data,
+    debug_table_structure,
+    export_doc_to_pdf
+)
 from .calendar_tools import create_event, modify_event, delete_event, list_calendars, get_events
 from .google_drive.tools import (
     search_drive_files,
@@ -94,161 +111,161 @@ TOOL_SCHEMAS = [
                 "required": ["title", "description", "type", "priority", "due_date_str", "tags"]
             }
         },
-        {
-            "name": "search_gmail_messages",
-            "description": "Search the user's Gmail using Gmail query syntax and return a small list of message metadata (id, threadId, subject, from, snippet, web_url).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Gmail search query (Gmail search operators allowed)."},
-                    "page_size": {"type": "integer", "description": "Max number of messages to return (default 10)."}
-                },
-                "required": ["query"]
-            }
-        },
+        # {
+        #     "name": "search_gmail_messages",
+        #     "description": "Search the user's Gmail using Gmail query syntax and return a small list of message metadata (id, threadId, subject, from, snippet, web_url).",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "query": {"type": "string", "description": "Gmail search query (Gmail search operators allowed)."},
+        #             "page_size": {"type": "integer", "description": "Max number of messages to return (default 10)."}
+        #         },
+        #         "required": ["query"]
+        #     }
+        # },
 
-        {
-            "name": "get_gmail_message_content",
-            "description": "Fetch subject, sender and a readable body (text/plain fallback to HTML) for a single Gmail message id.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message_id": {"type": "string", "description": "Gmail message ID."}
-                },
-                "required": ["message_id"]
-            }
-        },
-        {
-            "name": "get_gmail_messages_content_batch",
-            "description": "Retrieve contents for multiple Gmail message IDs. Returns array of {id, subject, from, body, web_url}.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message_ids": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of Gmail message IDs (max 25 recommended)."
-                    },
-                    "format": {"type":"string","enum":["full","metadata"],"description":"'full' includes body; 'metadata' only headers."}
-                },
-                "required": ["message_ids"]
-            }
-        },
+        # {
+        #     "name": "get_gmail_message_content",
+        #     "description": "Fetch subject, sender and a readable body (text/plain fallback to HTML) for a single Gmail message id.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "message_id": {"type": "string", "description": "Gmail message ID."}
+        #         },
+        #         "required": ["message_id"]
+        #     }
+        # },
+        # {
+        #     "name": "get_gmail_messages_content_batch",
+        #     "description": "Retrieve contents for multiple Gmail message IDs. Returns array of {id, subject, from, body, web_url}.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "message_ids": {
+        #                 "type": "array",
+        #                 "items": {"type": "string"},
+        #                 "description": "List of Gmail message IDs (max 25 recommended)."
+        #             },
+        #             "format": {"type":"string","enum":["full","metadata"],"description":"'full' includes body; 'metadata' only headers."}
+        #         },
+        #         "required": ["message_ids"]
+        #     }
+        # },
 
-        {
-            "name": "get_gmail_thread_content",
-            "description": "Retrieve the whole conversation thread for a given Gmail thread ID. Returns ordered messages with headers and bodies.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "thread_id": {"type": "string"}
-                },
-                "required": ["thread_id"]
-            }
-        },
-        {
-            "name": "get_gmail_threads_content_batch",
-            "description": "Retrieve multiple Gmail threads in batch. Returns array of thread objects (id, subject, messages[]).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "thread_ids": {"type":"array","items":{"type":"string"}}
-                },
-                "required": ["thread_ids"]
-            }
-        },
+        # {
+        #     "name": "get_gmail_thread_content",
+        #     "description": "Retrieve the whole conversation thread for a given Gmail thread ID. Returns ordered messages with headers and bodies.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "thread_id": {"type": "string"}
+        #         },
+        #         "required": ["thread_id"]
+        #     }
+        # },
+        # {
+        #     "name": "get_gmail_threads_content_batch",
+        #     "description": "Retrieve multiple Gmail threads in batch. Returns array of thread objects (id, subject, messages[]).",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {
+        #             "thread_ids": {"type":"array","items":{"type":"string"}}
+        #         },
+        #         "required": ["thread_ids"]
+        #     }
+        # },
 
-        {
-            "name": "list_gmail_labels",
-            "description": "List all Gmail labels (system and user) with id and name.",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        },
+        # {
+        #     "name": "list_gmail_labels",
+        #     "description": "List all Gmail labels (system and user) with id and name.",
+        #     "parameters": {
+        #         "type": "object",
+        #         "properties": {},
+        #         "required": []
+        #     }
+        # },
 
-        {
-            "name": "manage_gmail_label",
-            "description": "Create, update or delete a Gmail label.",
-            "parameters": {
-                "type":"object",
-                "properties":{
-                    "action": {"type":"string","enum":["create","update","delete"]},
-                    "name": {"type":"string"},
-                    "label_id": {"type":"string"},
-                    "label_list_visibility": {"type":"string","enum":["labelShow","labelHide"]},
-                    "message_list_visibility": {"type":"string","enum":["show","hide"]}
-                },
-                "required": ["action"]
-            }
-        },
+        # {
+        #     "name": "manage_gmail_label",
+        #     "description": "Create, update or delete a Gmail label.",
+        #     "parameters": {
+        #         "type":"object",
+        #         "properties":{
+        #             "action": {"type":"string","enum":["create","update","delete"]},
+        #             "name": {"type":"string"},
+        #             "label_id": {"type":"string"},
+        #             "label_list_visibility": {"type":"string","enum":["labelShow","labelHide"]},
+        #             "message_list_visibility": {"type":"string","enum":["show","hide"]}
+        #         },
+        #         "required": ["action"]
+        #     }
+        # },
 
-        {
-            "name": "modify_gmail_message_labels",
-            "description": "Add/remove labels on a single Gmail message.",
-            "parameters": {
-                "type":"object",
-                "properties": {
-                    "message_id": {"type":"string"},
-                    "add_label_ids": {"type":"array","items":{"type":"string"}},
-                    "remove_label_ids": {"type":"array","items":{"type":"string"}}
-                },
-                "required": ["message_id"]
-            }
-        },
+        # {
+        #     "name": "modify_gmail_message_labels",
+        #     "description": "Add/remove labels on a single Gmail message.",
+        #     "parameters": {
+        #         "type":"object",
+        #         "properties": {
+        #             "message_id": {"type":"string"},
+        #             "add_label_ids": {"type":"array","items":{"type":"string"}},
+        #             "remove_label_ids": {"type":"array","items":{"type":"string"}}
+        #         },
+        #         "required": ["message_id"]
+        #     }
+        # },
 
-        {
-            "name": "batch_modify_gmail_message_labels",
-            "description": "Add/remove labels on many Gmail messages at once.",
-            "parameters": {
-                "type":"object",
-                "properties": {
-                    "message_ids": {"type":"array","items":{"type":"string"}},
-                    "add_label_ids": {"type":"array","items":{"type":"string"}},
-                    "remove_label_ids": {"type":"array","items":{"type":"string"}}
-                },
-                "required": ["message_ids"]
-            }
-        },
+        # {
+        #     "name": "batch_modify_gmail_message_labels",
+        #     "description": "Add/remove labels on many Gmail messages at once.",
+        #     "parameters": {
+        #         "type":"object",
+        #         "properties": {
+        #             "message_ids": {"type":"array","items":{"type":"string"}},
+        #             "add_label_ids": {"type":"array","items":{"type":"string"}},
+        #             "remove_label_ids": {"type":"array","items":{"type":"string"}}
+        #         },
+        #         "required": ["message_ids"]
+        #     }
+        # },
 
-        {
-            "name": "send_gmail_message",
-            "description": "Send an email from the user's Gmail account (supports replies/threading). Returns sent message id.",
-            "parameters": {
-                "type":"object",
-                "properties": {
-                    "to": {"type":"string"},
-                    "subject": {"type":"string"},
-                    "body": {"type":"string"},
-                    "cc": {"type":"string"},
-                    "bcc": {"type":"string"},
-                    "thread_id": {"type":"string"},
-                    "in_reply_to": {"type":"string"},
-                    "references": {"type":"string"}
-                },
-                "required": ["to","subject","body"]
-            }
-        },
+        # {
+        #     "name": "send_gmail_message",
+        #     "description": "Send an email from the user's Gmail account (supports replies/threading). Returns sent message id.",
+        #     "parameters": {
+        #         "type":"object",
+        #         "properties": {
+        #             "to": {"type":"string"},
+        #             "subject": {"type":"string"},
+        #             "body": {"type":"string"},
+        #             "cc": {"type":"string"},
+        #             "bcc": {"type":"string"},
+        #             "thread_id": {"type":"string"},
+        #             "in_reply_to": {"type":"string"},
+        #             "references": {"type":"string"}
+        #         },
+        #         "required": ["to","subject","body"]
+        #     }
+        # },
 
-        {
-            "name": "draft_gmail_message",
-            "description": "Create a draft in the user's Gmail account. Returns draft id.",
-            "parameters": {
-                "type":"object",
-                "properties": {
-                    "subject": {"type":"string"},
-                    "body": {"type":"string"},
-                    "to": {"type":"string"},
-                    "cc": {"type":"string"},
-                    "bcc": {"type":"string"},
-                    "thread_id": {"type":"string"},
-                    "in_reply_to": {"type":"string"},
-                    "references": {"type":"string"}
-                },
-                "required": ["subject","body"]
-            }
-        },
+        # {
+        #     "name": "draft_gmail_message",
+        #     "description": "Create a draft in the user's Gmail account. Returns draft id.",
+        #     "parameters": {
+        #         "type":"object",
+        #         "properties": {
+        #             "subject": {"type":"string"},
+        #             "body": {"type":"string"},
+        #             "to": {"type":"string"},
+        #             "cc": {"type":"string"},
+        #             "bcc": {"type":"string"},
+        #             "thread_id": {"type":"string"},
+        #             "in_reply_to": {"type":"string"},
+        #             "references": {"type":"string"}
+        #         },
+        #         "required": ["subject","body"]
+        #     }
+        # },
 
         # {
         #     "name": "list_calendars",
@@ -556,6 +573,209 @@ TOOL_SCHEMAS = [
                 "required": ["file_name"]
             }
         },
+
+        {
+            "name": "search_docs",
+            "description": "Search Google Docs by name (Drive query). Returns list of docs with id, name, createdTime, modifiedTime and webViewLink.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Substring to search in document name."},
+                    "page_size": {"type": "integer", "description": "Maximum number of documents to return (default 10)."},
+                },
+                "required": ["query"]
+            }
+        },
+
+        {
+            "name": "get_doc_content",
+            "description": "Get document content by ID. Supports native Google Docs (via Docs API) and Office files stored in Drive (downloads and extracts text). Returns content with a header including file metadata and webViewLink.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Drive/Docs file ID to fetch content for."}
+                },
+                "required": ["document_id"]
+            }
+        },
+
+        {
+            "name": "list_docs_in_folder",
+            "description": "List Google Docs within a specific Drive folder.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "folder_id": {"type": "string", "description": "Folder ID to list (default 'root')."},
+                    "page_size": {"type": "integer", "description": "Maximum number of docs to return (default 100)."}
+                },
+                "required": []
+            }
+        },
+
+        {
+            "name": "create_doc",
+            "description": "Create a new Google Doc. Optionally provide initial content to insert.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Title for the new document."},
+                    "content": {"type": "string", "description": "Optional initial content (text) to insert into the new document."}
+                },
+                "required": ["title"]
+            }
+        },
+
+        {
+            "name": "modify_doc_text",
+            "description": "Insert or replace text and/or apply formatting in a Google Doc. Can do insert, replace, and apply text style (bold/italic/underline/font size/family).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to modify."},
+                    "start_index": {"type": "integer", "description": "Start index for operation (0-based)."},
+                    "end_index": {"type": "integer", "description": "End index for replacement/formatting (required for formatting or replace operations)."},
+                    "text": {"type": "string", "description": "Text to insert or replace with."},
+                    "bold": {"type": "boolean", "description": "Set bold on range/inserted text."},
+                    "italic": {"type": "boolean", "description": "Set italic on range/inserted text."},
+                    "underline": {"type": "boolean", "description": "Set underline on range/inserted text."},
+                    "font_size": {"type": "integer", "description": "Font size in points."},
+                    "font_family": {"type": "string", "description": "Font family name (e.g., 'Arial')."}
+                },
+                "required": ["document_id", "start_index"]
+            }
+        },
+
+        {
+            "name": "find_and_replace_doc",
+            "description": "Find and replace text across a Google Doc using replaceAllText.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to operate on."},
+                    "find_text": {"type": "string", "description": "Text to find."},
+                    "replace_text": {"type": "string", "description": "Text to replace with."},
+                    "match_case": {"type": "boolean", "description": "Whether to match case exactly (default false)."}
+                },
+                "required": ["document_id", "find_text", "replace_text"]
+            }
+        },
+
+        {
+            "name": "insert_doc_elements",
+            "description": "Insert structural elements into a document: table, list, or page break. For tables provide rows and columns. For lists provide list_type and optional text.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to update."},
+                    "element_type": {"type": "string", "description": "Element type: 'table', 'list', or 'page_break'."},
+                    "index": {"type": "integer", "description": "Insertion index (0-based; use inspect_doc_structure to get safe index)."},
+                    "rows": {"type": "integer", "description": "Number of rows (required for 'table')."},
+                    "columns": {"type": "integer", "description": "Number of columns (required for 'table')."},
+                    "list_type": {"type": "string", "description": "List type ('UNORDERED' or 'ORDERED' - required for 'list')."},
+                    "text": {"type": "string", "description": "Initial text for list item(s)."}
+                },
+                "required": ["document_id", "element_type", "index"]
+            }
+        },
+
+        {
+            "name": "insert_doc_image",
+            "description": "Insert an image into a document from a Drive file ID or a public URL. If a Drive ID is provided the file will be validated to be an image.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to update."},
+                    "image_source": {"type": "string", "description": "Drive file ID or public image URL."},
+                    "index": {"type": "integer", "description": "Insertion index (0-based)."},
+                    "width": {"type": "integer", "description": "Optional width in points."},
+                    "height": {"type": "integer", "description": "Optional height in points."}
+                },
+                "required": ["document_id", "image_source", "index"]
+            }
+        },
+
+        {
+            "name": "update_doc_headers_footers",
+            "description": "Update header or footer content in a Google Doc. Supports types: DEFAULT, FIRST_PAGE_ONLY, EVEN_PAGE.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to modify."},
+                    "section_type": {"type": "string", "description": "Either 'header' or 'footer'."},
+                    "content": {"type": "string", "description": "Text content to set in header/footer."},
+                    "header_footer_type": {"type": "string", "description": "Header/footer type ('DEFAULT', 'FIRST_PAGE_ONLY', 'EVEN_PAGE')."}
+                },
+                "required": ["document_id", "section_type", "content"]
+            }
+        },
+
+        {
+            "name": "batch_update_doc",
+            "description": "Execute multiple document operations in a single atomic batch. Operations are validated and translated to Docs API requests by the batch manager.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to update."},
+                    "operations": {"type": "array", "items": {"type": "object"}, "description": "List of operation objects (insert_text, delete_text, replace_text, format_text, insert_table, insert_page_break, find_replace)."}
+                },
+                "required": ["document_id", "operations"]
+            }
+        },
+
+        {
+            "name": "inspect_doc_structure",
+            "description": "Analyze document structure to find safe insertion points, table positions and document statistics. Use this before creating tables to get 'total_length'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to inspect."},
+                    "detailed": {"type": "boolean", "description": "Return detailed parsed structure (headers, footers, element list) if true."}
+                },
+                "required": ["document_id"]
+            }
+        },
+
+        {
+            "name": "create_table_with_data",
+            "description": "Create a table at a safe index and populate it with the provided 2D list of strings. MANDATORY: call inspect_doc_structure first and use its 'total_length' value for index.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to update."},
+                    "table_data": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}, "description": "2D list of strings: first row may be headers."},
+                    "index": {"type": "integer", "description": "Safe insertion index (use inspect_doc_structure)."},
+                    "bold_headers": {"type": "boolean", "description": "Whether to bold the first row (default true)."}
+                },
+                "required": ["document_id", "table_data", "index"]
+            }
+        },
+
+        {
+            "name": "debug_table_structure",
+            "description": "Return detailed structure of a specific table (dimensions, each cell's indices, insertion indices and current content). Useful for debugging table population issues.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to inspect."},
+                    "table_index": {"type": "integer", "description": "Which table to debug (0 = first)."}
+                },
+                "required": ["document_id"]
+            }
+        },
+
+        {
+            "name": "export_doc_to_pdf",
+            "description": "Export a native Google Doc to PDF and save the resulting PDF to Drive (optionally into a given folder). Returns created PDF file id and web link.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string", "description": "Document ID to export."},
+                    "pdf_filename": {"type": "string", "description": "Optional filename for the PDF (will get .pdf if not present)."},
+                    "folder_id": {"type": "string", "description": "Optional Drive folder ID to save the PDF into."}
+                },
+                "required": ["document_id"]
+            }
+        },
     ]
 
 TOOL_REGISTRY = {
@@ -586,4 +806,18 @@ TOOL_REGISTRY = {
     "create_drive_file": create_drive_file,
     "get_drive_file_permissions": get_drive_file_permissions,
     "check_drive_file_public_access": check_drive_file_public_access,
+    "search_docs": search_docs,
+    "get_doc_content": get_doc_content,
+    "list_docs_in_folder": list_docs_in_folder,
+    "create_doc": create_doc,
+    "modify_doc_text": modify_doc_text,
+    "find_and_replace_doc": find_and_replace_doc,
+    "insert_doc_elements": insert_doc_elements,
+    "insert_doc_image": insert_doc_image,
+    "update_doc_headers_footers": update_doc_headers_footers,
+    "batch_update_doc": batch_update_doc,
+    "inspect_doc_structure": inspect_doc_structure,
+    "create_table_with_data": create_table_with_data,
+    "debug_table_structure": debug_table_structure,
+    "export_doc_to_pdf": export_doc_to_pdf,
 }

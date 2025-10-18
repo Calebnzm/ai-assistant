@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'chats',
-    'GoogleAuth'
+    'GoogleAuth',
+    'telegram_integration'
 ]
 
 AUTH_USER_MODEL = "api.User"
