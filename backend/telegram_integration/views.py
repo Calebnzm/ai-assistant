@@ -68,7 +68,15 @@ def telegram_webhook(request):
 
     chat = message.get("chat", {})
     chat_id = chat.get("id")
-    text = (message.get("text") or "").strip()
+    reply_to_message = message.get("reply_to_message", None)
+    if reply_to_message:
+        reply_to_message_text = reply_to_message.get("text", None)
+    if reply_to_message and reply_to_message_text:
+        reply_text = (message.get("text") or "").strip()
+        text = f"{reply_text} The user is replying to the message: {reply_to_message_text}"
+    else:
+        text = (message.get("text") or "").strip()
+
 
     if not text:
         send_telegram_message(chat_id, "I can only process text messages right now. Send /link <CODE> to link this chat.")
