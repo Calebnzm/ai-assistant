@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'chats',
     'GoogleAuth',
-    'telegram_integration'
+    'telegram_integration',
+    'live_assistance'
 ]
 
 AUTH_USER_MODEL = "api.User"

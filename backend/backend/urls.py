@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/chats/', include('chats.urls')),
     path('api/GoogleAuth/', include('GoogleAuth.urls')),
     path("api/telegram/", include("telegram_integration.urls")),
+    path("api/", include("live_assistance.urls")),
 ]

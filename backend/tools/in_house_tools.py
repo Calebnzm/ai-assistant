@@ -6,6 +6,13 @@ from tasks.serializers import ActivityUpdateValidatorSerializer, ActivityValidat
 from rest_framework.exceptions import ValidationError
 from sentence_transformers import SentenceTransformer
 from pgvector.django import CosineDistance
+from chats.models import Conversation, ChatMessage
+from django.utils import timezone
+from datetime import timedelta
+import os, requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 embdedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -154,3 +161,58 @@ def search_activities(user_id, search_phrase: str) -> dict:
         return {"status": "error", "message": "User not found."}
     except Exception as e:
         return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
+    
+
+def bot_send_message(user_id: str, message: str):
+    "Sends a message to a telegram user."
+
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+    if not TELEGRAM_BOT_TOKEN:
+        return {"status": "error", "message": " DevError: Missing TELEGRAM_BOT_TOKEN in environment variables. Cannot send message."}
+    
+
+    try: 
+        user = User.objects.get(pk=user_id)
+
+        telegram_id = user.telegram_id
+
+        if not telegram_id:
+            return {"status": "error", "message": "User has not linked Telegram for correspondece."}
+
+        if not message:
+            return {"status": "error", "message": "Message cannot be empty"}
+        
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {"chat_id": telegram_id, "text": message}
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        conversation = (
+            user.conversations.filter(active=True).order_by("-created_at").first()
+        )
+
+        if conversation and conversation.is_expired():
+            conversation.active = False
+            conversation.save()
+            conversation = None
+
+        timeout_seconds = 600
+
+        if not conversation:
+            conversation = Conversation.objects.create(
+                user=user,
+                expires_at = timezone.now() + timedelta(seconds=timeout_seconds)
+            )
+
+        ChatMessage.objects.create(conversation=conversation, role="model", content=message)
+
+        return {"status": "success", "message": "Message sent succesfully"}
+    
+    except User.DoesNotExist:
+        return {"status": "error", "message": "User not found."}
+    except Exception as e:
+        return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
+    
+
+def complete():
+    return

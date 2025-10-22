@@ -14,6 +14,9 @@ class GoogleCredential(models.Model):
     expiry = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    email = models.EmailField(unique=True, null=True, blank=True)
+    latest_history_id = models.CharField(max_length=255, null=True, blank=True)
+
 
     def as_dict(self):
         return {

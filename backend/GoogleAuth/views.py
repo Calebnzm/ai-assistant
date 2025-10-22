@@ -4,6 +4,7 @@ from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.core.cache import cache 
+from googleapiclient.discovery import build
 from django.utils.crypto import get_random_string
 
 from rest_framework.views import APIView
@@ -19,22 +20,22 @@ from .models import GoogleCredential
 os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
 SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/gmail.labels",
-
-
     "https://www.googleapis.com/auth/calendar",
-
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
-
-    "https://www.googleapis.com/auth/documents.readonly",
     "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/documents.readonly",
 ]
+
 
 def _get_client_config():
     return {
@@ -104,6 +105,9 @@ class GoogleOAuthCallback(APIView):
             return Response({"error": "Failed to fetch token", "details": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         creds = flow.credentials
+        oauth2 = build('oauth2', 'v2', credentials=creds)
+        userinfo = oauth2.userinfo().get().execute()
+        email = userinfo.get('email')
 
         obj, created = GoogleCredential.objects.update_or_create(
             user=user,
@@ -115,8 +119,21 @@ class GoogleOAuthCallback(APIView):
                 "client_secret": creds.client_secret,
                 "scopes": json.dumps(list(creds.scopes or [])),
                 "expiry": creds.expiry,
+                "email": email
             },
         )
+
+        try:
+            gmail_service = build("gmail", "v1", credentials=creds)
+            topic_name = "projects/plannora/topics/email"
+            watch_request = {
+                "labelIds": ["CATEGORY_PERSONAL"],
+                "topicName": topic_name,
+            }
+            watch_response = gmail_service.users().watch(userId="me", body=watch_request).execute()
+            print(f"Gmail Watch started for {email}, historyId: {watch_response.get('historyId')}")
+        except Exception as watch_error:
+            print(f"⚠️ Failed to start Gmail Watch for {email}: {watch_error}")
 
         cache.delete(cache_key)
 
