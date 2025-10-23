@@ -1,4 +1,4 @@
-from .in_house_tools import list_activity, create_activity, edit_activity, delete_activity, search_activities, bot_send_message, complete
+from .in_house_tools import list_activity, create_activity, edit_activity, delete_activity, search_activities, bot_send_message, complete, create_job_tool
 from .gmail_tools import (
     search_gmail_messages,
     get_gmail_message_content,
@@ -321,7 +321,7 @@ TOOL_SCHEMAS = [
 
         {
             "name": "create_event",
-            "description": "Create an event. Required: summary, start_time, end_time. Accepts attendees, reminders, attachments, timezone, and optional Google Meet.",
+            "description": "Create an event. Required: summary, start_time, end_time. Accepts reminders, attachments, timezone, and optional Google Meet.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -348,11 +348,6 @@ TOOL_SCHEMAS = [
                     "location": {
                         "type": "string",
                         "description": "Event location."
-                    },
-                    "attendees": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of attendee email addresses."
                     },
                     "timezone": {
                         "type": "string",
@@ -430,11 +425,6 @@ TOOL_SCHEMAS = [
                     "location": {
                         "type": "string",
                         "description": "New location."
-                    },
-                    "attendees": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "List of attendee email addresses (replaces existing if provided)."
                     },
                     "timezone": {
                         "type": "string",
@@ -802,6 +792,52 @@ TOOL_SCHEMAS = [
                 "required" : []
             }
         },
+        {
+            "name": "create_job",
+            "description": "Create and schedule a multi-step job. Provide  a title, a list of ordered steps (each step must include a tool name and an args object). Include the services the job will require.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Short human-friendly title for the job (required)."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Longer human description of what the job should accomplish (optional)."
+                },
+                "steps": {
+                    "type": "array",
+                    "description": "Ordered list of natural-language step descriptions the worker should interpret and execute. Each step is a short instruction in plain English (required).",
+                    "items": {
+                    "type": "string",
+                    "description": "A single natural-language instruction (e.g. 'Email the team the monthly report and attach latest spreadsheet').",
+                    "minLength": 1,
+                    "maxLength": 2000
+                    },
+                    "minItems": 1,
+                    "maxItems": 50
+                },
+                "services": {
+                    "type": "array",
+                    "description": "Optional list of service names required by this job (used to validate available tools). Allowed values: in_app, gmail, calendar, google_drive, google_docs.",
+                    "items": {
+                    "type": "string",
+                    "enum": ["in_app", "gmail", "calendar", "google_drive", "google_docs"]
+                    },
+                    "default": []
+                },
+                "max_retries": {
+                    "type": "integer",
+                    "description": "Optional maximum number of retries for the job (defaults to 3).",
+                    "minimum": 0,
+                    "default": 3
+                }
+                },
+                "required": ["title","description", "services", "steps"],
+            }
+            }
+
     ]
 
 
@@ -849,7 +885,8 @@ TOOL_REGISTRY = {
     "debug_table_structure": debug_table_structure,
     "export_doc_to_pdf": export_doc_to_pdf,
     "init_conversation": bot_send_message,
-    "complete": complete
+    "complete": complete,
+    "create_job": create_job_tool
 }
 
 
@@ -862,11 +899,12 @@ TOOL_CONFIG = {
             "edit_activity",
             "delete_activity",
             "search_activities",
+            "create_job"
         ],
         "gmail": [
             "search_gmail_messages", 
-            "send_gmail_message",
             "get_gmail_message_content"
+            "get_gmail_thread_content",
         ],
         "calendar": [
             "get_events", 
@@ -878,7 +916,6 @@ TOOL_CONFIG = {
         ],
         "google_docs": [
             "search_docs", 
-            "create_doc", 
             "get_doc_content"
         ],
     },
@@ -894,7 +931,6 @@ TOOL_CONFIG = {
         ],
         "gmail": [
             "search_gmail_messages",
-            "send_gmail_message",
             "get_gmail_message_content",
             "draft_gmail_message",
             "modify_gmail_message_labels",

@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     'chats',
     'GoogleAuth',
     'telegram_integration',
-    'live_assistance'
+    'live_assistance',
+    'jobs'
 ]
 
 AUTH_USER_MODEL = "api.User"
@@ -168,3 +169,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+
+
+CELERY_TIMEZONE = "UTC"
+CELERY_ENABLE_UTC = True

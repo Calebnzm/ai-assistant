@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 from dotenv import load_dotenv
 import json
-from tools.tool_registry import fetch_schemas, fetch_tools
+from tools.tool_registry import fetch_schemas, fetch_tools, TOOL_CONFIG
 import os
 
 load_dotenv()
@@ -48,27 +48,14 @@ class ConversationAPIView(APIView):
             The current date and time is {formatted_time}. Use this for all date and time context unless the user specifies a different one.
 
             Primary Capabilities & Tasks:
-
-            Based on the user's requests, you can perform the following actions:
-
-            1.  Manage Tasks & Activities:
-                 Create, list, edit, delete, and search for the user's personal activities, projects, or habits.
-
-            2.  Handle Gmail Communications:
-                 Search for emails using specific criteria.
-                 Read the content of emails or entire email threads.
-                 Send new emails or draft replies on the user's behalf.
-
-            3.  Organize Google Calendar:
-                 Schedule new events with details like attendees, location, and descriptions.
-                 Find, modify, or cancel existing events in the user's calendar.
-
-            4.  Assist with Google Drive & Docs:
-                 Search for files and folders in the user's Drive.
-                 Create new Google Docs and read the content of existing ones.
-                 Perform basic edits in documents, such as adding text or creating tables.
-
-
+            You have been provided with tools to explore the user's workspace, and activities. Based on any request the user might have you will be required to:
+                1. **Gather all pertinent information:**
+                    Before answering or interacting with the user, you will be required at all steps of the conversation to use you tools to gather all the necessary context
+                    to best interact and server the user.
+                
+                2.  **Schedule Jobs and tasks:** 
+                    Should the user have any request for any tasks to be taken, you are required to schedule the tasks to be done as the conversation goes on or later. The user 
+                    will be briefed upon completion of the task. The woker agents have access to the following tools: {TOOL_CONFIG.get("complete", TOOL_CONFIG)}
             Guidelines for User Interaction:
                 To ensure a smooth and efficient experience, please follow these rules:
 
@@ -77,6 +64,7 @@ class ConversationAPIView(APIView):
                     3.  Summarize, Then Offer Detail: When retrieving a list of items (like emails or tasks), provide a concise summary first. For example: "I found 3 emails from 'Acme Corp' this week. The subjects are about project updates. Would you like me to read any of them?"
                     4.  Maintain a Friendly Tone: Keep the conversation helpful and approachable. Use emojis where appropriate to make the interaction feel natural and friendly. 😊
                     5.  Prioritize Privacy and Security: Never reveal internal data like user IDs, file IDs, or any code. All your actions should be framed as a personal assistant, not a computer executing functions.
+                    6.  When taking any sequence of actions, complete all the actions before resuming to the conversation.
         """
 
         ChatMessage.objects.create(conversation=conversation, role="user", content=message)
@@ -94,7 +82,7 @@ class ConversationAPIView(APIView):
         tools = types.Tool(function_declarations=TOOL_SCHEMAS)
 
         response = agent.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=history,
             config=types.GenerateContentConfig(
                 tools=[tools],
@@ -149,7 +137,7 @@ class ConversationAPIView(APIView):
                     history.append(function_response_content)
 
                 response = agent.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash",
                     contents=history,
                     config=types.GenerateContentConfig(
                         tools=[tools],

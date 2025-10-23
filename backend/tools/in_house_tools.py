@@ -2,15 +2,17 @@ from django.db.models import Q
 from tasks.models import Task
 from api.models import User
 from datetime import date, datetime
-from tasks.serializers import ActivityUpdateValidatorSerializer, ActivityValidatorSerializer
 from rest_framework.exceptions import ValidationError
 from sentence_transformers import SentenceTransformer
 from pgvector.django import CosineDistance
 from chats.models import Conversation, ChatMessage
 from django.utils import timezone
 from datetime import timedelta
-import os, requests
+import os, requests, json
+from django.utils.dateparse import parse_datetime
 from dotenv import load_dotenv
+
+from jobs.models import Job
 
 load_dotenv()
 
@@ -214,5 +216,58 @@ def bot_send_message(user_id: str, message: str):
         return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
     
 
+def create_job_tool(user_id: int, title: str, description: str, steps: list, services: list = None, scheduled_at: str = None) -> dict:
+    "A tool to create and schedule Jobs"
+
+
+    try:
+        from jobs.tasks import schedule_job
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return {"status": "error", "message": "User account not found"}
+
+        if scheduled_at:
+            dt = parse_datetime(scheduled_at)
+            if dt is None:
+                return {"status":"error","message":"Invalid scheduled_at ISO format"}
+            scheduled_at_dt = timezone.make_aware(dt) if dt.tzinfo is None else dt
+        else:
+            scheduled_at_dt = timezone.now()
+
+        if isinstance(steps, str):
+            try:
+                steps = json.loads(steps)
+            except json.JSONDecodeError:
+                return {"status": "error", "message": "steps must be valid JSON or a Python list"}
+        if not isinstance(steps, list):
+            return {"status": "error", "message": "steps must be a list of step objects"}
+
+
+        job = Job.objects.create(
+            user=user,
+            title=title,
+            description=description,
+            steps=steps,
+            services=services or [],
+            scheduled_at=scheduled_at_dt,
+            status="SCHEDULED",
+            max_retries=3,
+        )
+
+        if scheduled_at_dt <= timezone.now():
+            schedule_job.apply_async(args=[str(job.id)])
+        else:
+            schedule_job.apply_async(args=[str(job.id)], eta=scheduled_at_dt)
+
+        return {"status": "ok", "job_id": str(job.id), "scheduled_at": scheduled_at_dt.isoformat()}
+
+    except Exception as e:
+        return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
+
+
 def complete():
     return
+
+

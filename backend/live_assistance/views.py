@@ -66,12 +66,10 @@ def fetch_history_and_message_ids(gmail_service, start_history_id: str, user_cre
     logger.debug("fetch_history_and_message_ids: start_history_id=%s for user=%s", start_history_id, getattr(user_cred, "email", "<no-email>"))
     message_ids = []
 
-    # helper to dedupe and cap
     def add_id(mid):
         if mid and mid not in message_ids and len(message_ids) < MAX_MESSAGES_PER_PUSH:
             message_ids.append(mid)
 
-    # Try history.list first
     try:
         resp = gmail_service.users().history().list(
             userId="me",
@@ -79,7 +77,6 @@ def fetch_history_and_message_ids(gmail_service, start_history_id: str, user_cre
             historyTypes=["messageAdded"]
         ).execute()
 
-        # debug dump for offline inspection
         try:
             with open("/tmp/gmail_api_debug.json", "a") as fh:
                 fh.write(json.dumps({"kind": "history.list", "resp": resp, "ts": timezone.now().isoformat()}) + "\n")
@@ -88,67 +85,34 @@ def fetch_history_and_message_ids(gmail_service, start_history_id: str, user_cre
 
         logger.debug("history.list response keys: %s", list(resp.keys()))
         for h in resp.get("history", []):
-            # messagesAdded is the typical key
             for added in h.get("messagesAdded", []) or h.get("messages", []) or []:
-                # messagesAdded entries sometimes come in the shape { "message": { "id": "..." } }
                 mid = None
                 if isinstance(added, dict):
                     if "message" in added and isinstance(added["message"], dict):
                         mid = added["message"].get("id")
                     else:
-                        # sometimes history entries include direct message dicts
                         mid = added.get("id") or added.get("messageId")
                 if mid:
-                    add_id(mid)
+                    try:
+                        labels_meta = gmail_service.users().messages().get(
+                            userId="me", id=mid, format="metadata", fields="labelIds"
+                        ).execute().get("labelIds", []) or []
+                        if "CATEGORY_PERSONAL" in labels_meta and not any(
+                            (lbl.startswith("CATEGORY_") and lbl != "CATEGORY_PERSONAL") for lbl in labels_meta
+                        ):
+                            add_id(mid)
+                        else:
+                            logger.debug("Skipping history message %s because labels=%s", mid, labels_meta)
+                    except Exception as e:
+                        logger.debug("Could not fetch metadata for history message %s: %s", mid, e)
+
 
     except HttpError as e:
-        # history may be too old or startHistoryId invalid -> fallback
         status = getattr(e, "status_code", None) or getattr(e, "resp", {}).get("status") if hasattr(e, "resp") else "?"
         logger.warning("history.list failed (status=%s): %s. Falling back to messages.list.", status, str(e))
     except Exception as e:
         logger.exception("Unexpected error calling history.list: %s", e)
 
-    # If history returned nothing, fallback to messages.list (support paging)
-    if not message_ids:
-        logger.debug("No message ids from history.list — calling messages.list fallback")
-        try:
-            page_token = None
-            attempts = 0
-            while len(message_ids) < MAX_MESSAGES_PER_PUSH:
-                attempts += 1
-                params = {"userId": "me", "labelIds": ["INBOX"], "maxResults": MAX_MESSAGES_PER_PUSH}
-                if page_token:
-                    params["pageToken"] = page_token
-                resp = gmail_service.users().messages().list(**params).execute()
-
-                # debug dump
-                try:
-                    with open("/tmp/gmail_api_debug.json", "a") as fh:
-                        fh.write(json.dumps({"kind": "messages.list", "resp": resp, "ts": timezone.now().isoformat()}) + "\n")
-                except Exception:
-                    logger.debug("Could not write gmail_api_debug.json")
-
-                msgs = resp.get("messages", [])
-                logger.debug("messages.list returned %d messages (attempt %d)", len(msgs), attempts)
-                for item in msgs:
-                    mid = item.get("id")
-                    add_id(mid)
-                    if len(message_ids) >= MAX_MESSAGES_PER_PUSH:
-                        break
-
-                page_token = resp.get("nextPageToken")
-                if not page_token:
-                    break
-
-                # small guard to avoid runaway paging
-                if attempts >= 5:
-                    logger.debug("Reached paging attempts limit when listing messages")
-                    break
-
-        except Exception as ee:
-            logger.exception("Fallback messages.list also failed: %s", ee)
-
-    # final dedup/cap in case of unexpected duplicates
     uniq = []
     for m in message_ids:
         if m not in uniq:
@@ -172,10 +136,15 @@ def fetch_full_messages(gmail_service, message_ids: List[str]) -> List[Dict]:
 
     for mid in message_ids:
         try:
-            # When mid looks invalid this can raise; catch and log entire exception
             msg = gmail_service.users().messages().get(userId="me", id=mid, format="full").execute()
 
-            # Debug dump first message raw payload (only the first to avoid huge files)
+            labels = msg.get("labelIds", []) or []
+            if "CATEGORY_PERSONAL" not in labels or any(
+                (lbl.startswith("CATEGORY_") and lbl != "CATEGORY_PERSONAL") for lbl in labels
+            ):
+                logger.debug("Skipping message %s because labels=%s (not strictly primary)", mid, labels)
+                continue
+
             try:
                 with open("/tmp/gmail_api_debug.json", "a") as fh:
                     fh.write(json.dumps({"kind": "message.get", "id": mid, "ts": timezone.now().isoformat(), "headers_present": bool(msg.get("payload", {}).get("headers"))}) + "\n")
@@ -204,7 +173,6 @@ def fetch_full_messages(gmail_service, message_ids: List[str]) -> List[Dict]:
 
         except HttpError as he:
             logger.exception("HttpError fetching message %s: %s", mid, he)
-            # for HTTP 404 or 410, skip. Continue for other statuses.
             try:
                 status = he.resp.status
             except Exception:
@@ -275,180 +243,207 @@ def pubsub_gmail_push(request):
         logger.warning("User %s (%s) has no telegram_id", user, email)
         return JsonResponse({"ok": True, "info": "no telegram_id"})
 
-    # def handle_update():
+    def handle_update():
 
-    creds = get_credentials_for_user(user)
-    try:
-        gmail_service = build("gmail", "v1", credentials=creds)
-    except Exception as e:
-        raise RuntimeError(f"Failed to build Drive service: {e}")
-    
-    user_creds = GoogleCredential.objects.filter(user=user).first()
-
-    latest_history_id = user_creds.latest_history_id
-
-    if latest_history_id and int(history_id) <= int(latest_history_id):
-        return JsonResponse({"ok": True, "info": "duplicate or already processed"})
-
-    message_ids = fetch_history_and_message_ids(
-        gmail_service, latest_history_id, user_credential
-    )
-
-    full_messages = fetch_full_messages(gmail_service, message_ids)
-
-
-    if not full_messages:
-        return JsonResponse({"ok": True, "info": "no new messages"})
-    
-    message_summaries = []
-    for msg in full_messages:
-        summary = (
-            f"📧 From: {msg['from']}\n"
-            f"Subject: {msg['subject']}\n"
-            f"Snippet: {msg['snippet']}\n"
-            f"Body:\n{msg['body'][:1500]}\n"  
-            f"Link: {msg['web_url']}\n"
-            "---"
-        )
-        message_summaries.append(summary)
-
-    all_messages_text = "\n\n".join(message_summaries)
-
-
-
-    system_prompt = system_prompt = f"""
-    Role and Prime Directive
-    You are an autonomous AI Email Assistant for a user named {user.first_name}. Your prime directive is to process incoming emails, take intelligent actions using your tools, and operate without direct user supervision.
-
-    Context: Incoming Emails
-    A batch of one or more newly received emails will be provided. Your analysis and subsequent actions will be based solely on this content.
-
-    Standard Operating Procedure (SOP)
-    You MUST follow this procedure for each email:
-
-    1.  **Analyze and Categorize:** First, silently analyze each email to determine its primary category. Is it a **Meeting Request**, an **Invoice/Bill**, a **Potential Opportunity** (like a job offer or sales lead), a **Direct Question**, a **Newsletter**, or **Spam**? and label it with an
-        appropriate label (If no appropriate lable exists, create a new one).
-
-    2.  **Determine Action:** Based on the category, decide which action(s) to take according to the **Action Matrix** below.
-
-    3.  **Default to No Action:** The most common outcome should be doing nothing. **If an email does not clearly fit a category that requires action, you MUST ignore it.** This is a critical safety instruction.
-
-    4.  **Execute Tools:** If an action is required, use one or more of your available tools to execute it.
-
-    Action Matrix (Category -> Required Action)
-
-    -   **If Category is Meeting Request:**
-        -   Use the `create_event` tool to schedule the event on the user's Google Calendar. Extract the title, attendees, date, and time from the email.
-
-    -   **If Category is Invoice/Bill:**
-        -   Use the `create_activity` tool to create a task reminding the user to pay it. The task title should include the service/product and amount (e.g., "Pay electricity bill of $75"). Set the due date a few days before the actual due date mentioned in the email.
-
-    -   **If Category is Potential Opportunity (Job, Sales Lead, etc.):**
-        -   Use the `create_activity` tool to create a **high-priority** task for the user to review it.
-        -   Immediately use the `init_conversation` tool to send a notification to the user with a brief summary of the opportunity and a link to the email.
-
-    -   **If Category is Direct Question or requires a reply:**
-        -   If you have enough information, use the `send_gmail_message` tool to draft a reply.
-        -   If you need input from {user.first_name} to form the reply, use the `init_conversation` tool to ask them for the necessary information.
-
-    -   **If Category is Newsletter/Spam:**
-        -   Take no action. Do not create tasks or notify the user.
-
-    ---
-    ### Critical Directives
-    -   **Be Conservative:** If you are ever unsure about an email's intent, it is always better to **do nothing** than to take the wrong action.
-    -   **Limit User Contact:** Only use the `init_conversation` tool when the Action Matrix explicitly requires it or when you are missing critical information to complete another required action.
-    -   **Act Autonomously:** Do not ask for permission. Follow the SOP and Action Matrix directly.
-    -   Keep the user in the loop, should you take any significant action, you can simply inform the user of any of the actions taken.
-    """
-
-    agent = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    tier = "complete"
-    services = ["in_app", "gmail", "calendar"]
-    TOOL_SCHEMAS = fetch_schemas(tier=tier, services=services)
-    TOOL_REGISTRY = fetch_tools(tier=tier, services=services)
-    tools = types.Tool(function_declarations=TOOL_SCHEMAS)
-
-    history = [
-        types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=all_messages_text)]
-        )
-    ]
-    iter_count = 0
-    max_iterations = 20
-
-
-    while iter_count < max_iterations:
-        iter_count += 1
-
-        try: 
-            response = agent.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=history,
-                config=types.GenerateContentConfig(
-                    tools=[tools],
-                    system_instruction=system_prompt
-                )
-            )
-
-            if response.function_calls:
-                for function_call in response.function_calls:
-                    tool_name = function_call.name
-                    tool_args = {key: value for key, value in function_call.args.items()}
-                    tool_args["user_id"] = user.id
-
-
-                    tool_function = TOOL_REGISTRY.get(tool_name)
-                    if not tool_function:
-                        tool_result = {"error": f"Tool '{tool_name}' not found."}
-                    
-                    else:
-                        try:
-                            tool_result = tool_function(**tool_args)
-
-                        except ValueError as e:
-                            tool_result = {
-                                "status": "error",
-                                "error_type": "VALIDATION_ERROR",
-                                "message": "One of the provided arguments has an invalid format.",
-                                "details": str(e)
-                            }
-                            
-                        except TypeError as e:
-                            tool_result = {
-                                "status": "error",
-                                "error_type": "ARGUMENT_ERROR",
-                                "message": "Missing or incorrect arguments for the tool.",
-                                "details": str(e)
-                            }
-                            
-                        except Exception as e:
-                            tool_result = {"error": f"An unexpected error occurred: {e}"}
-
-                    if not isinstance(tool_result, dict):
-                        tool_result = json.loads(tool_result)
-                    function_response_part = types.Part.from_function_response(
-                        name=function_call.name,
-                        response=tool_result,
-                    )
-                    function_response_content = types.Content(
-                        role='tool', parts=[function_response_part]
-                    )
-                    history.append(function_response_content)
-
-                    if tool_name == "complete":
-                        break
-
-                continue
-            else:
-                break
-
+        creds = get_credentials_for_user(user)
+        try:
+            gmail_service = build("gmail", "v1", credentials=creds)
         except Exception as e:
-            print(f"An error occured: {str(e)}")
+            raise RuntimeError(f"Failed to build Drive service: {e}")
+        
+        user_creds = GoogleCredential.objects.filter(user=user).first()
 
-    # threading.Thread(target=handle_update, daemon=True).start()
-    user_creds.latest_history_id = history_id
-    user_creds.save(update_fields=["latest_history_id"])
+        latest_history_id = user_creds.latest_history_id
+
+        if latest_history_id and int(history_id) <= int(latest_history_id):
+            return JsonResponse({"ok": True, "info": "duplicate or already processed"})
+
+        message_ids = fetch_history_and_message_ids(
+            gmail_service, latest_history_id, user_credential
+        )
+
+        if len(message_ids) == 0:
+            print("No new messages")
+            return JsonResponse({"ok": True, "info": "no new messages"})
+
+        full_messages = fetch_full_messages(gmail_service, message_ids)
+        
+        user_creds.latest_history_id = history_id
+        user_creds.save(update_fields=["latest_history_id"])
+
+
+        
+        message_summaries = []
+        for msg in full_messages:
+            summary = (
+                f"📧 From: {msg['from']}\n"
+                f"Subject: {msg['subject']}\n"
+                f"Snippet: {msg['snippet']}\n"
+                f"Body:\n{msg['body'][:1500]}\n"  
+                f"Link: {msg['web_url']}\n"
+                "---"
+            )
+            message_summaries.append(summary)
+
+        all_messages_text = "\n\n".join(message_summaries)
+
+        current_time = timezone.now()
+        formatted_time = current_time.strftime("%A, %B %d, %Y at %I:%M %p %Z")
+
+        system_prompt = system_prompt = f"""
+        Role and Prime Directive
+        You are an autonomous AI Email Assistant for a user named {user.first_name}. Your prime directive is to process incoming emails, take intelligent actions using your tools, and operate without direct user supervision.
+        The current date and time is {formatted_time}. Use this for all date and time context unless the user specifies a different one.
+        
+        Context: Incoming Emails
+        A batch of one or more newly received emails will be provided. Your analysis and subsequent actions will be based solely on this content.
+
+        Standard Operating Procedure (SOP)
+        You MUST follow this procedure for each email:
+
+        1.  **Analyze, Categorize and Label:** First, analyze each email to determine its primary category, and the appropriate label for the email. You should analyze existing labels, and if none is appropriate, create new one
+            appropriate for the email, and label the email.
+
+        2.  **Determine Action:** Based on the category, decide which action(s) to take according to the **Action Matrix** below.
+
+        3.  **Default to No Action:** The most common outcome should be doing nothing. **If an email does not clearly fit a category that requires action, you MUST ignore it.** This is a critical safety instruction.
+
+        4.  **Gather necessary information:** Based on the actions you have determined to take, gather any information that will be required to take the actions specified. 
+
+        5.  **Determine necessity**: Before taking any action, determine if it had already been taken, or its expected result is already present. Example: If one of the actions is to schedule a meeting. First using the tools
+            provided to  you, confirm the meeting is not already scheduled, or that there is no similar meeting already scheduled, to avoid duplication
+
+        6.  **Execute Tools:** If an action is required, use one or more of your available tools to execute it.
+
+        7.  **Confirm Execution:** After taking any actions, you will be required to confirm the results of your actions are present and are what is expected. If not, you are required to redo the entire action once again,
+            to accomplish the objective and acheive the desired/required results. Should there be any duplicates, you are requred to eliminate them.
+
+
+
+        Action Matrix (Category -> Required Action)
+            These are just Guidelines, you are required to determine all necessary actions, even beyond the ones listed here.
+
+        -   **If Category is an event that requires to be scheduled, such as a meeting:**
+            -   Schedule the event on the user's Google Calendar. Extract the title, date, and time from the email. As well as create a task to remind the user.
+
+        -   **If Category is Invoice/Bill:**
+            -   Create a task reminding the user to pay it. The task title should include the service/product and amount (e.g., "Pay electricity bill of $75"). Set the due date a few days before the actual due date mentioned in the email.
+
+        -   **If Category is Potential Opportunity (Job, Sales Lead, etc.):**
+            -   Create a task for the user to review it.
+            -   Immediately send a notification to the user with a brief summary of the opportunity and a link to the any resources or items for their review.
+
+        -   **If Category is Direct Question or requires a reply:**
+            -   If you have enough information,  draft a reply.
+            -   If you need input from {user.first_name} to form the reply. Ask them for all the necessary information.
+
+        -   **If the email requires work to be done, such as drafting a document, or any other complex task:**
+            -   Create/schedule a job with all the requirements and steps required. The task will be executed at a later time.
+
+        -   **If Category is Newsletter/Spam:**
+            -   Take no action. Do not create tasks or notify the user.
+
+
+
+        ---
+        ### Critical Directives
+        -   **Be Conservative:** If you are ever unsure about an email's intent, it is always better to **do nothing** than to take the wrong action.
+        -   **Limit User Contact:** Only use the `init_conversation` tool when the Action Matrix explicitly requires it or when you are missing critical information to complete another required action.
+        -   **Act Autonomously:** Do not ask for permission. Follow the SOP and Action Matrix directly.
+        -   Keep the user in the loop, should you take any significant action, you can simply inform the user of any of the actions taken.
+        -   **Avoid Duplicatoin** Every action should be taken at most one time. Before taking any action, check to ensure that it had not been done before. Example, Cheking if a meeting or a similar one, had already been scheduled.
+
+        After completing all actions satisfactorily, inform the user of email, task, actions taken, and results in brief.
+        """
+
+        agent = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        tier = "complete"
+        services = ["in_app", "gmail", "calendar"]
+        TOOL_SCHEMAS = fetch_schemas(tier=tier, services=services)
+        TOOL_REGISTRY = fetch_tools(tier=tier, services=services)
+        tools = types.Tool(function_declarations=TOOL_SCHEMAS)
+
+        history = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=all_messages_text)]
+            )
+        ]
+        iter_count = 0
+        max_iterations = 20
+
+
+        while iter_count < max_iterations:
+            iter_count += 1
+
+            try: 
+                response = agent.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=history,
+                    config=types.GenerateContentConfig(
+                        tools=[tools],
+                        system_instruction=system_prompt
+                    )
+                )
+
+                if response.function_calls:
+                    for function_call in response.function_calls:
+                        tool_name = function_call.name
+                        tool_args = {key: value for key, value in function_call.args.items()}
+                        tool_args["user_id"] = user.id
+
+
+                        tool_function = TOOL_REGISTRY.get(tool_name)
+                        if not tool_function:
+                            tool_result = {"error": f"Tool '{tool_name}' not found."}
+                        
+                        else:
+                            try:
+                                tool_result = tool_function(**tool_args)
+
+                            except ValueError as e:
+                                tool_result = {
+                                    "status": "error",
+                                    "error_type": "VALIDATION_ERROR",
+                                    "message": "One of the provided arguments has an invalid format.",
+                                    "details": str(e)
+                                }
+                                
+                            except TypeError as e:
+                                tool_result = {
+                                    "status": "error",
+                                    "error_type": "ARGUMENT_ERROR",
+                                    "message": "Missing or incorrect arguments for the tool.",
+                                    "details": str(e)
+                                }
+                                
+                            except Exception as e:
+                                tool_result = {"error": f"An unexpected error occurred: {e}"}
+
+                        if not isinstance(tool_result, dict):
+                            tool_result = json.loads(tool_result)
+                        function_response_part = types.Part.from_function_response(
+                            name=function_call.name,
+                            response=tool_result,
+                        )
+                        function_response_content = types.Content(
+                            role='tool', parts=[function_response_part]
+                        )
+                        history.append(function_response_content)
+
+                        if tool_name == "complete":
+                            break
+
+                    continue
+                else:
+                    break
+
+
+            except Exception as e:
+                print(f"An error occured: {str(e)}")
+
+
+    threading.Thread(target=handle_update, daemon=True).start()
+
 
     return JsonResponse({"ok": True})
