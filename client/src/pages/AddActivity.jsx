@@ -2,8 +2,41 @@ import "./styles.css"
 import { useNavigate } from "react-router-dom"
 import { useState, useRef, useEffect } from 'react';
 import ErroMessage from '../components/ErrorMessage.jsx'
+import { Button } from "../*/components/ui/button";
+import { Label } from "../*/components/ui/label"
+import { Input } from "../*/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "../*/components/ui/select"
+import { toast } from "sonner"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../*/components/ui/drawer"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../*/components/ui/card"
+import { Calendar } from "../*/components/ui/calendar";
+import { CalendarPlus } from "lucide-react";
 
 
+import { Textarea } from "../*/components/ui/textarea"
 import api from "../api.js"
 
 
@@ -20,6 +53,7 @@ export default function AddActivity() {
         dueDate: "",
         tags: ""
     })
+    const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     
     const handleInputChange = (e) => {
@@ -51,22 +85,20 @@ export default function AddActivity() {
         if (!formData.dueDate.trim()) {
             newErrors.dueDate = "Due Date is required"
         }
-        // if (!formData.type === "task" && !formData.frequency.trim()){
-        //     newErrors.frequency = "Frequency is required"
-        // }
 
         return newErrors;
     }
 
     const createTask = async (formData) => {
         try {
+            console.log("Sending task data:", formData);
             const response = await api.post("tasks/", formData)
             console.log("Task Created:", response.data)
-            alert("Task Created")
-            navigate(-1)
+            toast.success("Task Created")
             return response.data;
         } catch(error) {
             console.error("Error creating task:", error);
+            toast.error("Failed to create task")
         }
     }
 
@@ -94,95 +126,116 @@ export default function AddActivity() {
         setLoading(false)
     }
 
+    const handleDateSelect = (date) => {
+        if (!date) return;
+        const formatted = date.toISOString().split("T")[0]; 
+        setFormData((prev) => ({ ...prev, dueDate: formatted }));
+        setOpen(false);
+    };
+
     return (
-        <>
-            <div className={`page ${loading ? "disabled": ""}`}>
-                <div className="banner">
-                        <button className="back-button" onClick={() => navigate(-1)}>
-                            <img src="/left-arrow.png" alt="icon" />
-                            <h4 style={{margin: 0, marginLeft: "5px", marginRight: "5px", border: "none", padding: 0}}>Back</h4>
-                        </button>
-                        <h3>Add Activity</h3>
-                        <button className="profile-button" onClick={() => navigate("/profile")}>
-                            <img src="/profile-user.png" alt="user" />
-                        </button>
-                </div>
-                <div className="activity-details-page">
-                    <div className='edit-profile edit-task'>
-                        <div ref={topPageRef} />
-                        <form onSubmit={handleSubmit} className='edit-activity-form'>
-                            <div className='edit-profile-form-sections'>
-                                <div className="edit-activity-form-section">
-                                    {errors.title ? <ErroMessage message={errors.title}/> : <></>}
-                                    <label htmlFor="">Title</label>
-                                    <input onChange={handleInputChange} type="text" value={formData.title} placeholder="Enter the title of the activity" name="title"/>
-                                </div>
-                                <div className="edit-activity-form-section">
-                                    <label htmlFor="">Description</label>
-                                    <textarea onChange={handleInputChange} value={formData.description} name="description" id="" placeholder="Enter a description of the task"></textarea>
-                                </div>
-                                <div className="edit-activity-form-section">
-                                    {errors.type ? <ErroMessage message={errors.type}/> : <></>}
-                                    <label htmlFor="">Type</label>
-                                    <select onChange={handleInputChange} name="type" id=""  value={formData.type}>
-                                        <option value="task">Task</option>
-                                        <option value="habit">Habit</option>
-                                        <option value="project">Project</option>
-                                    </select>
-                                </div>
-                                {(formData.type === "project" || formData.type === "habit") ? (
-                                    <div className="edit-activity-form-section">
-                                        <label htmlFor="">Frequency</label>
-                                        <select onChange={handleInputChange} name="frequency" id="" value={formData.frequency}>
-                                            <option value="task">Everyday</option>
-                                            <option value="habit">Every Weekday</option>
-                                            <option value="project">Every Monday</option>
-                                            <option value="project">Every Teusday</option>
-                                            <option value="project">Every Wednesday</option>
-                                            <option value="project">Every Thursday</option>
-                                            <option value="project">Every Friday</option>
-                                            <option value="project">Every Saturday</option>
-                                            <option value="project">Every Sunday</option>
-                                        </select>
-                                    </div>
-                                ): (
-                                    <></>
-                                )}
-                                <div className="edit-activity-form-section">
-                                    {errors.priority ? <ErroMessage message={errors.priority}/> : <></>}
-                                    <label htmlFor="">Priority</label>
-                                    <select onChange={handleInputChange} name="priority" id="" value={formData.priority}>
-                                        <option value="high">High</option>
-                                        <option value="low">Medium</option>
-                                        <option value="low">Low</option>
-                                    </select>
-                                </div>
-                                <div className="edit-activity-form-section">
-                                    {errors.dueDate ? <ErroMessage message={errors.dueDate}/> : <></>}
-                                    <label htmlFor="">Due Date</label>
-                                    <input onChange={handleInputChange} name="dueDate" type="date"/>
-                                </div>
-                                <div className="edit-activity-form-section">
-                                    <label htmlFor="">Tags (comma seperated)</label>
-                                    <input onChange={handleInputChange} name="tags" type="text" placeholder={"tag1, tag2, tag3"} value={formData.tags}/>
-                                </div>
-                            </div>
-                            <div className="edit-form-buttons">
-                                <button type="submit" className="edit-button">
-                                    <img src="/save.svg" alt="user" />
-                                    {loading ? <div className="spinner"></div> : "Save"}
-                                </button>
-                                <button className="edit-button" type="button" onClick={() => {navigate(-1)}}>
-                                    <img src="/cancel.svg" alt="user" />
-                                    <h4>
-                                        Cancel
-                                    </h4>
-                                </button>
-                            </div>
-                        </form>
+        <Card className=" max-w-full h-auto border-none shadow-none">
+            <CardHeader>
+                <CardTitle>
+                    Create an Activity
+                </CardTitle>
+                <CardDescription>
+                    Schedule an activity
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit}>
+                    <div className="mt-2 w-full">
+                        {errors.title ? <ErroMessage message={errors.title}/> : <></>}
+                        <Label className={"mb-2"} htmlFor="">Title</Label>
+                        <Input onChange={handleInputChange} type="text" value={formData.title} placeholder="Enter the title of the activity" name="title"/>
                     </div>
-                </div>
-            </div>
-        </>
+                    <div className="mt-2 w-full">
+                        <Label className={"mb-2"} htmlFor="">Description</Label>
+                        <Textarea onChange={handleInputChange} value={formData.description} name="description" id="" placeholder="Enter a description of the task"></Textarea>
+                    </div>
+                    <div className="mt-2 w-full">
+                        {errors.type ? <ErroMessage message={errors.type}/> : <></>}
+                        <Label className={"mb-2"} htmlFor="">Type</Label>
+                        <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a Task Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectLabel>Type</SelectLabel>
+                                    <SelectItem value="task">Task</SelectItem>
+                                    <SelectItem value="habit">Habit</SelectItem>
+                                    <SelectItem value="project">Project</SelectItem>
+
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="mt-2 w-full">
+                        {errors.priority ? <ErroMessage message={errors.priority}/> : <></>}
+                        <Label className={"mb-2"} htmlFor="">Priority</Label>
+                        <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a Priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectLabel>Priority</SelectLabel>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="low">Low</SelectItem>
+
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="mt-2 w-full">
+                        {errors.dueDate ? <ErroMessage message={errors.dueDate}/> : <></>}
+                        <Label className={"mb-2"} htmlFor="">Due Date</Label>
+                        <Drawer open={open} onOpenChange={setOpen}>
+                            <DrawerTrigger asChild>
+                            <Button
+                                variant="outline"
+                                id="date"
+                                className="w-full h-10 flex items-center justify-center p-2"
+                                type="button"
+                                aria-label="Select date"
+                            >
+                                {formData.dueDate ? new Date(formData.dueDate).toLocaleDateString() : "Select date"}
+                                {formData.dueDate ? "" : <CalendarPlus className="h-4 w-4" />}
+                                
+                            </Button>
+                            </DrawerTrigger>
+
+                            <DrawerContent className="w-auto overflow-hidden p-0">
+                            <DrawerHeader className="sr-only">
+                                <DrawerTitle>Select date</DrawerTitle>
+                                <DrawerDescription>Pick a date</DrawerDescription>
+                            </DrawerHeader>
+
+                            <Calendar
+                                mode="single"
+                                selected={formData.dueDate ? new Date(formData.dueDate) : undefined}
+                                captionLayout="dropdown"
+                                onSelect={handleDateSelect}
+                                className="mx-auto [--cell-size:clamp(0px,calc(100vw/7.5),52px)]"
+                            />
+                            </DrawerContent>
+                        </Drawer>
+                    </div>
+                    <div className="mt-2 w-full">
+                        <Label className={"mb-2"} htmlFor="">Tags (comma seperated)</Label>
+                        <Input onChange={handleInputChange} name="tags" type="text" placeholder={"tag1, tag2, tag3"} value={formData.tags}/>
+                    </div>
+                    <CardFooter>
+                        <div className="mt-2 flex justify-around">
+                            <Button type="submit">Save</Button>
+                            <Button type="button" variant="destructive" onClick={() => {setOpen(false)}}>Cancel</Button>
+                        </div>
+                    </CardFooter>
+                </form>
+            </CardContent>
+
+        </Card>
     )
 }

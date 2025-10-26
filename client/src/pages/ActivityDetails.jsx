@@ -1,15 +1,78 @@
 import { act, useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import './styles.css'
+import { Button } from '../*/components/ui/button'
+import { Badge } from "../*/components/ui/badge"
+import { Avatar, AvatarImage, AvatarFallback } from "../*/components/ui/avatar"
+import { ChevronLeft, User } from "lucide-react"
+import { Checkbox } from "../*/components/ui/checkbox"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../*/components/ui/dialog"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../*/components/ui/card"
 
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "../*/components/ui/select"
+
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../*/components/ui/drawer"
+
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+} from "../*/components/ui/item"
+import { Calendar } from "../*/components/ui/calendar";
+import { CalendarPlus } from "lucide-react";
+import { Textarea } from "../*/components/ui/textarea"
+import { Label } from "../*/components/ui/label"
+import { Input } from "../*/components/ui/input"
+import { Toaster } from "../*/components/ui/sonner"
 
 import api from "../api.js"
+import { toast } from 'sonner'
 
 
 export default function ActivityDetails() {
     const navigate = useNavigate()
     const [taskInfo, setTaskInfo] = useState({})
     const [loading, setLoading] = useState(false)
+    const [open, setOpen] = useState(false)
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
 
 
 
@@ -62,13 +125,13 @@ export default function ActivityDetails() {
         is_completed: !taskInfo.is_completed,
         });
 
-        alert("Task Updated Succesfully.")
+        toast("Task Status updated succesfully")
         setTaskInfo((prev) => ({
         ...prev,
         ...response.data, 
         }));
     } catch (error) {
-        alert("Error updating task. Try again.")
+        toast.error("Error updating task. Try again.")
         console.error("Error updating task status:", error);
     }
     };
@@ -86,12 +149,12 @@ export default function ActivityDetails() {
 
         try {
             const response = await api.delete(`/tasks/${taskInfo.id}/`);
-            alert("Task deleted Succesfully.")
+            toast.success("Task deleted Succesfully.")
             navigate("/dashboard");
             console.log("Task Deleted Succesfully")
         } catch (error) {
             console.error("Failed to delete task:", error);
-            alert("Failed to delete task. Please try again.")
+            toast.error("Failed to delete task. Please try again.")
         }
     }
 
@@ -118,14 +181,14 @@ export default function ActivityDetails() {
                 ...response.data,
             }));
 
-            alert("Task information updated");
+            toast.success("Task information updated");
             } catch (error) {
             console.error("Error updating task:", error);
-            alert("Failed to update task");
+            toast.error("Failed to update task");
             }
         }
 
-        setEditing(false);
+        setOpen(false);
         setLoading(false)
     }
 
@@ -142,9 +205,7 @@ export default function ActivityDetails() {
 
     const tags = () => taskInfo.tags.split(",").map((tag, index) => {
         return (
-            <div className='tag'>
-                <p key={index}>{tag}</p>
-            </div>
+            <Badge variant="secodnary">{tag.trim()}</Badge>
         )
     })
 
@@ -156,165 +217,242 @@ export default function ActivityDetails() {
         today.setHours(0, 0, 0, 0);
 
         if (sel.getTime() === today.getTime()) {
-            //if date1 and date 2 are the same dates
             return 0; 
         } else if (sel.getTime() > today.getTime()) {
-            //if date1 is before date 2
             return 1; 
         } else {
-            //if date2 is before date1
             return -1; 
         }
+    };
+
+    const handleDateSelect = (date) => {
+        if (!date) return;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const formatted = `${year}-${month}-${day}`;
+        setEditFormData((prev) => ({ ...prev, due_date: formatted }));
+        setOpen(false);
     };
 
     
     return (
         <>
-            <div className={`page ${loading ? "disabled": ""}`}>
-                <div className="banner">
-                    <button className="back-button" onClick={goBack}>
-                        <img src="/left-arrow.png" alt="icon" />
-                        <h4>Back</h4>
-                    </button>
-                    <h3>Task Details</h3>
-                    <button className="profile-button" onClick={() => navigate("/profile")}>
-                        <img src="/profile-user.png" alt="user" />
-                    </button>
-                </div>
-                <div className='activity-details-page'>
-                    <div ref={topPageRef} />
-                    {editing ? (
-                        <>
-                            <div className='edit-profile edit-task'>
-                                <form onSubmit={handleSubmit} className='edit-activity-form'>
-                                    <div className='edit-profile-form-sections'>
-                                        <div className="edit-activity-form-section">
-                                            <label htmlFor="">Title</label>
-                                            <input type="text" defaultValue={taskInfo.title} name='title' onChange={handleInputChange}/>
-                                        </div>
-                                        <div className="edit-activity-form-section">
-                                            <label htmlFor="">Description</label>
-                                            <input type="text" defaultValue={taskInfo.description} name='description' onChange={handleInputChange}/>
-                                        </div>
-                                        <div className="edit-activity-form-section">
-                                            <label htmlFor="">Priority</label>
-                                            <select name="priority" onChange={handleInputChange} id="">
-                                                <option value="high">High</option>
-                                                <option value="low">Low</option>
-                                            </select>
-                                        </div>
-                                        <div className="edit-activity-form-section">
-                                            <label htmlFor="">Due Date</label>
-                                            <input type="date" defaultValue={taskInfo.due_date} name='due_date' onChange={handleInputChange}/>
-                                        </div>
-                                        <div className="edit-activity-form-section">
-                                            <label htmlFor="">Tags (comma seperated)</label>
-                                            <input type="text" defaultValue={taskInfo.tags} name='tags' onChange={handleInputChange}/>
-                                        </div>
-                                    </div>
-                                    <div className="edit-form-buttons">
-                                        <button className="edit-button" type='submit'>
-                                            <img src="/save.svg" alt="user" />
-                                            <>{loading ? <div className="spinner"></div> : "Save"}</>
-                                        </button>
-                                        <button className="edit-button" onClick={(e) => {setEditing(!editing)}}>
-                                            <img src="/cancel.svg" alt="user" />
-                                            <h4>
-                                                Cancel
-                                            </h4>
-                                        </button>
-                                    </div>
-                                </form>
-
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className='activity-detials-page-buttons'>
-                                <h3>{taskInfo.type}</h3>
-                                <button className="back-button" onClick={(e) => {setEditing(!editing)}}>
-                                    <img src="/edit.png" alt="user" />
-                                    <h4>
-                                        Edit
-                                    </h4>
-                                </button>
-                            </div>
-                            <div className='activity-details'>
-                                <div className="checkbox-section">
-                                    <label className="custom-checkbox">
-                                        <input type="checkbox" checked={taskInfo.is_completed} onChange={updateTaskStatus}/>
-                                        <span className="checkmark"></span>
-                                    </label>
-                                </div>
-
-                                <div className='activity-description'>
-                                    <h3>{taskInfo.title}</h3>
-                                    <h4>{taskInfo.description}</h4>
-                                </div>
-                            </div>
-
-                            <div className='activity-properties'>
-                                <h3>Task Properties</h3>
-                                <div className='activity-properties-info'>
-                                    <ul>
-                                        <li><div><p>Priority</p></div><div>{taskInfo.priority}</div></li>
-                                        <li><div><p>Due Date</p></div><div>{taskInfo?.due_date ? new Date(taskInfo.due_date).toLocaleDateString() : "Loading..."}</div></li>
-                                        <li><div><p>Created</p></div><div>{taskInfo?.created_at ? new Date(taskInfo.created_at).toLocaleDateString() : "Loading..."}</div></li>
-                                        {taskInfo.is_habit ? (
-                                            <>
-                                                <li><div><p>Current Streak</p></div><div>{taskInfo.current_streak}</div></li>
-                                                <li><div><p>Longest Streak</p></div><div>{taskInfo.longest_streak}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{remainingDays() > 0 ? remainingDays() : "Completed"}</div></li>
-                                            </>
-                                        ) : taskInfo.is_project ? (
-                                            <>
-                                                <li><div><p>Current Streak</p></div><div>{taskInfo.current_streak}</div></li>
-                                                <li><div><p>Longest Streak</p></div><div>{taskInfo.longest_streak}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{remainingDays() > 0 ? remainingDays() : "Completed"}</div></li>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <li><div><p>Status</p></div><div>{taskInfo.is_completed? "Completed": "Pending"}</div></li>
-                                                <li><div><p>Days Remaining</p></div><div>{remainingDays() > 0 ? remainingDays() : "Missed"}</div></li>
-                                            </>
-                                        )}
-                                        {(taskInfo.tags && taskInfo.tags.trim() !== "") ? (
-                                            <li>
-                                                <div className='tag-section'>
-                                                    <div>Tags</div>
-                                                    <div className='activity-properties-tag'>{tags()}</div>
-                                                </div>
-                                            </li>
-                                        ) : null}
-
-                                    </ul>
-                                </div>
-                            </div>
-                            <div className='activity-buttons'>
-                                <h3>Actions</h3>
-                                {taskInfo.is_completed ? (
-                                    <button className='button complete-button' onClick={updateTaskStatus}>
-                                        {/* <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' /> */}
-                                        <>{loading ? <div className="spinner"></div> : <div style={{color: "white"}}>Mark as Incomplete</div>}</>
-                                    </button>
-                                ) : (
-                                    <button style={{backgroundColor: "green"}} className='button complete-button' onClick={updateTaskStatus}>
-                                        {/* <img style={{backgroundColor: "white"}} src="/white-check.png" alt="icon" className='icon-image' /> */}
-                                       <>{loading ? <div className="spinner"></div> : <div style={{color: "white"}}>Mark as complete</div>}</>
-                                    </button>
-                                )}
-                                <button className='button delete-button' onClick={deleteTask}>
-                                    {/* <img src="/delete.png" alt="icon" className='icon-image' /> */}
-                                    <>{loading ? <div className="spinner"></div> : "Delete"}</>
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    <div className='task-stats'>
+            <div className={`w-full bg-background flex flex-col items-center ${loading ? "disabled": ""}`}>
+                <header className="fixed top-0 left-0 right-0 bg-background border-b z-40">
+                    <div className="flex h-14 items-center justify-center px-4 relative">
+                        <Button
+                            variant="ghost"
+                            onClick={goBack}
+                            className="absolute left-4 gap-2"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Back
+                        </Button>
+                        
+                        <h1 className="text-xl font-semibold">Task Details</h1>
+                        
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate("/profile")}
+                            className="rounded-full hover:bg-accent absolute right-4"
+                        >
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage>
+                                    <User className="h-4 w-4" />
+                                </AvatarImage>
+                                <AvatarFallback>
+                                    <User className="h-4 w-4" />
+                                </AvatarFallback>
+                            </Avatar>
+                        </Button>
                     </div>
-                </div>
+                </header>
+                <Card className="w-[800px] max-w-full border-none shadow-none mt-16 flex flex-col items-stretch">
+                    <CardContent className="flex justify-between items-start flex-wrap gap-4">
+                        <Badge variant="outline" className="min-w-20 h-9">{taskInfo.type}</Badge>
+                        <Dialog >
+                            <DialogTrigger>
+                                <Button>Edit</Button>
+                            </DialogTrigger>
+                            <DialogContent className="w-[400px] max-w-full h-auto border-none shadow-none">
+                                <form onSubmit={handleSubmit}>
+                                    <div className="edit-activity-form-section">
+                                        <Label className={"mb-2"} htmlFor="">Title</Label>
+                                        <Input type="text" defaultValue={taskInfo.title} name='title' onChange={handleInputChange}/>
+                                    </div>
+                                    <div className="edit-activity-form-section">
+                                        <Label className={"mb-2"} htmlFor="">Description</Label>
+                                        <Textarea type="text" defaultValue={taskInfo.description} name='description' onChange={handleInputChange}/>
+                                    </div>
+                                    <div className="edit-activity-form-section">
+                                        <Label className={"mb-2"} htmlFor="">Priority</Label>
+                                        <Select
+                                        value={editFormData.priority || taskInfo.priority || ""}
+                                        onValueChange={(value) => setEditFormData({ ...editFormData, priority: value })}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select a Priority" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                <SelectLabel>Priority</SelectLabel>
+                                                <SelectItem value="high">High</SelectItem>
+                                                <SelectItem value="low">Low</SelectItem>
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="edit-activity-form-section">
+                                        <Label className={"mb-2"} htmlFor="">Due Date</Label>
+                                        <Drawer open={open} onOpenChange={setOpen}>
+                                            <DrawerTrigger asChild>
+                                            <Button
+                                            variant="outline"
+                                            name="due_date"
+                                            className="w-full h-10 flex items-center justify-center p-2"
+                                            type="button"
+                                            aria-label="Select date"
+                                            >
+                                            {editFormData.due_date
+                                                ? editFormData.due_date
+                                                : taskInfo.due_date
+                                                ? taskInfo.due_date
+                                                : "Select date"}
+                                            {!editFormData.due_date && !taskInfo.due_date && (
+                                                <CalendarPlus className="h-4 w-4 ml-2" />
+                                            )}
+                                            </Button>
+                                            </DrawerTrigger>
+
+                                            <DrawerContent className="w-auto overflow-hidden p-0">
+                                            <DrawerHeader className="sr-only">
+                                                <DrawerTitle>Select date</DrawerTitle>
+                                                <DrawerDescription>Pick a date</DrawerDescription>
+                                            </DrawerHeader>
+
+                                            <Calendar
+                                            mode="single"
+                                            selected={
+                                                editFormData.due_date
+                                                ? new Date(editFormData.due_date)
+                                                : taskInfo.due_date
+                                                ? new Date(taskInfo.due_date)
+                                                : undefined
+                                            }
+                                            captionLayout="dropdown"
+                                            onSelect={handleDateSelect}
+                                            className="mx-auto [--cell-size:clamp(0px,calc(100vw/7.5),52px)]"
+                                            />
+                                            </DrawerContent>
+                                        </Drawer>
+                                    </div>
+                                    <div className="edit-activity-form-section">
+                                        <Label className={"mb-2"} htmlFor="">Tags (comma seperated)</Label>
+                                        <Input type="text" defaultValue={taskInfo.tags} name='tags' onChange={handleInputChange}/>
+                                    </div>
+                                    <DialogFooter className={"mt-2 flex justify-around"}>
+                                        <Button type="submit">Save changes</Button>
+                                        <DialogClose asChild>
+                                            <Button variant="destructive">Cancel</Button>
+                                        </DialogClose>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    </CardContent>
+                    <CardHeader className="text-left">
+                        <CardAction>
+    
+                            <Checkbox
+                                checked={
+                                taskInfo.type === "task"
+                                    ? taskInfo.is_completed
+                                    : Array.isArray(taskInfo.streak_dates) &&
+                                    taskInfo.streak_dates.includes(
+                                        selectedDate.toISOString().split("T")[0]
+                                    )
+                                }
+                                onCheckedChange={updateTaskStatus}
+                            />
+                        </CardAction>
+                        <CardTitle className="max-w-[80%] break-words">
+                            <h3>{taskInfo.title}</h3>
+                        </CardTitle>
+                        <CardDescription className="max-w-[80%] break-words">
+                            <h4>{taskInfo.description}</h4>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex justify-between items-start flex-wrap gap-4">
+                        <ItemGroup>
+                            <Item>
+                                <ItemContent className="flex flex-row">
+                                    <ItemTitle>Due Date</ItemTitle>
+                                    <ItemDescription>{taskInfo?.due_date ? new Date(taskInfo.due_date).toLocaleDateString() : "Loading..."}</ItemDescription>
+                                </ItemContent>
+                            </Item>
+                            <ItemSeparator />
+                            <Item>
+                                <ItemContent className="flex flex-row">
+                                    <ItemTitle>Priority</ItemTitle>
+                                    <ItemDescription>{taskInfo?.priority ? taskInfo.priority: "Loading..."}</ItemDescription>
+                                </ItemContent>
+                            </Item>
+                            <ItemSeparator />
+                            <Item>
+                                <ItemContent className="flex flex-row">
+                                    <ItemTitle>Created</ItemTitle>
+                                    <ItemDescription>{taskInfo?.created_at ? new Date(taskInfo.created_at).toLocaleDateString() : "Loading..."}</ItemDescription>
+                                </ItemContent>
+                            </Item>
+                            <ItemSeparator />
+                            {(taskInfo.is_project || taskInfo.is_habit) ? (
+                                <>
+                                    <Item>
+                                        <ItemTitle>Current Streak</ItemTitle>
+                                        <ItemDescription>{taskInfo.current_streak}</ItemDescription>
+                                    </Item>
+                                    <ItemSeparator />
+                                    <Item>
+                                        <ItemTitle>Longest Streak</ItemTitle>
+                                        <ItemDescription>{taskInfo.longest_streak}</ItemDescription>
+                                    </Item>
+                                    <ItemSeparator />
+                                </>
+                            ) : (
+                                <>
+                                    <Item>
+                                        <ItemTitle>Status</ItemTitle>
+                                        <ItemDescription>{taskInfo.is_completed? "Completed": "Pending"}</ItemDescription>
+                                    </Item>
+                                    <ItemSeparator />
+
+                                </>
+                            )}
+                            <Item>
+                                <ItemTitle>Days Remaining</ItemTitle>
+                                <ItemDescription>{remainingDays() > 0 ? remainingDays() : "Missed"}</ItemDescription>
+                            </Item>
+                            <ItemSeparator />
+                            <Item className="justify-evenly">
+                                {(taskInfo.tags && taskInfo.tags.trim() !== "") ? (
+                                    tags()
+                                ) : null}
+                            </Item>
+                        </ItemGroup>
+                    </CardContent>
+                    <CardFooter className="justify-evenly">
+                        {taskInfo.is_completed ? (
+                            <Button onClick={updateTaskStatus}>Mark as Incomplete</Button>
+                        ) : (
+                            <Button onClick={updateTaskStatus}>Mark as Complete</Button>
+                        )}
+                        <Button variant="destructive" onClick={deleteTask}>Delete</Button>
+                    </CardFooter>
+                </Card>
             </div>
         </>
     )
 }
+

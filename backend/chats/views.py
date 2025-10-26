@@ -82,7 +82,7 @@ class ConversationAPIView(APIView):
         tools = types.Tool(function_declarations=TOOL_SCHEMAS)
 
         response = agent.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=history,
             config=types.GenerateContentConfig(
                 tools=[tools],
@@ -137,7 +137,7 @@ class ConversationAPIView(APIView):
                     history.append(function_response_content)
 
                 response = agent.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=history,
                     config=types.GenerateContentConfig(
                         tools=[tools],
