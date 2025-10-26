@@ -26,6 +26,7 @@ export default function Auth() {
     })
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    console.log(process.env.REACT_APP_API_URL);
     const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
     const signupUrl = `${API_BASE}/auth/register/`
     const loginUrl = `${API_BASE}/auth/login/`
