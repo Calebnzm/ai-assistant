@@ -8,6 +8,7 @@ import { Input } from "../*/components/ui/input"
 import { Label } from "../*/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../*/components/ui/card"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { API_BASE } from '../api';
 
 
 import ErroMessage from '../components/ErrorMessage.jsx'
@@ -26,8 +27,7 @@ export default function Auth() {
     })
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-    console.log(process.env.REACT_APP_API_URL);
-    const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+    console.log(API_BASE);
     const signupUrl = `${API_BASE}/auth/register/`
     const loginUrl = `${API_BASE}/auth/login/`
     const navigate = useNavigate();
