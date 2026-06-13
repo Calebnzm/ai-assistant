@@ -1,6 +1,7 @@
 import json
 import os
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.core.cache import cache 
@@ -17,7 +18,10 @@ from google_auth_oauthlib.flow import Flow
 from api.models import User
 from .models import GoogleCredential
 
-os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
+if settings.OAUTHLIB_INSECURE_TRANSPORT:
+    os.environ.setdefault(
+        "OAUTHLIB_INSECURE_TRANSPORT", settings.OAUTHLIB_INSECURE_TRANSPORT
+    )
 
 SCOPES = [
     "openid",
@@ -137,6 +141,8 @@ class GoogleOAuthCallback(APIView):
 
         cache.delete(cache_key)
 
-        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+        frontend_url = settings.FRONTEND_URL
+        if not frontend_url:
+            raise ImproperlyConfigured("Missing FRONTEND_URL environment variable")
         success_url = f"{frontend_url.rstrip('/')}/google/success"
         return redirect(success_url)

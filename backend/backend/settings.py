@@ -11,29 +11,67 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv(BASE_DIR / ".env")
+
+
+def env(name, default=None, *, required=False):
+    value = os.getenv(name, default)
+    if required and (value is None or value == ""):
+        raise ImproperlyConfigured(f"Missing required environment variable: {name}")
+    return value
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=""):
+    value = os.getenv(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def required_setting(*names):
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return value
+    raise ImproperlyConfigured(
+        "Missing required environment variable. Set one of: " + ", ".join(names)
+    )
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-
-
-import os
-SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key')
+SECRET_KEY = required_setting("DJANGO_SECRET_KEY", "SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", default=env_bool("DEBUG", default=False))
 
-ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1', "lenna-monadistic-stuart.ngrok-free.dev"]
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set when DJANGO_DEBUG=False")
 
-GOOGLE_CLIENT_ID = "818922023116-tqqadse4n03d5784nmr8689nf64lo62o.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", "")
+FRONTEND_URL = env("FRONTEND_URL", "")
+OAUTHLIB_INSECURE_TRANSPORT = env("OAUTHLIB_INSECURE_TRANSPORT", "")
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -76,11 +114,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://ai-assistant-weld.vercel.app"
-]
+CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -107,24 +141,26 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'aia_db',
-        'USER': 'postgres',
-        'PASSWORD': 'nzioka@2020',
-        'HOST': 'localhost',
-        'PORT': '5432',
+DATABASE_URL = env("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=int(env("DATABASE_CONN_MAX_AGE", "600")),
+            ssl_require=env_bool("DATABASE_SSL_REQUIRE", default=False),
+        )
     }
-}
-
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.getenv("DATABASE_URL"),
-#         conn_max_age=600,
-#         ssl_require=True
-#     )
-# }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": env("DATABASE_ENGINE", "django.db.backends.postgresql"),
+            "NAME": required_setting("DATABASE_NAME", "POSTGRES_DB"),
+            "USER": required_setting("DATABASE_USER", "POSTGRES_USER"),
+            "PASSWORD": required_setting("DATABASE_PASSWORD", "POSTGRES_PASSWORD"),
+            "HOST": env("DATABASE_HOST", required=True),
+            "PORT": env("DATABASE_PORT", required=True),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -170,8 +206,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", "")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", "")
 
 
 CELERY_TIMEZONE = "UTC"

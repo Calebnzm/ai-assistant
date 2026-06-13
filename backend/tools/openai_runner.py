@@ -5,8 +5,6 @@ from typing import Any, Callable, Dict, List, Optional
 from openai import OpenAI
 
 
-DEFAULT_OPENAI_MODEL = "gpt-5.4-mini"
-
 
 def _json_safe(value: Any) -> Any:
     """Convert tool results into JSON-compatible data for logs and model input."""
@@ -110,8 +108,12 @@ def run_openai_tool_agent(
     iterations = 0
 
     for iterations in range(1, max_iterations + 1):
+        selected_model = model or os.getenv("OPENAI_MODEL")
+        if not selected_model:
+            raise RuntimeError("Missing OPENAI_MODEL environment variable.")
+
         request_kwargs = {
-            "model": model or os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
+            "model": selected_model,
             "messages": conversation,
         }
         if openai_tools:
