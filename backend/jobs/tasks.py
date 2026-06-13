@@ -2,11 +2,9 @@ from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from google import genai
-from google.genai import types
 from .models import Job, JobTaskLog
+from tools.openai_runner import run_openai_tool_agent
 from tools.tool_registry import fetch_schemas, fetch_tools
-import os, json
 from dotenv import load_dotenv
 import traceback
 from datetime import timedelta, datetime
@@ -55,9 +53,6 @@ def execute_job(self, job_id):
         TOOL_REGISTRY = fetch_tools(tier="core", services=job.services or [])
         TOOL_SCHEMAS = fetch_schemas(tier="core", services=job.services or [])
 
-        agent = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-        tools = types.Tool(function_declarations=TOOL_SCHEMAS)
-
         current_time = timezone.now()
         formatted_time = current_time.strftime("%A, %B %d, %Y at %I:%M %p %Z")
         system_prompt = system_prompt = f"""
@@ -98,103 +93,56 @@ def execute_job(self, job_id):
         jd = "Title: " + (job.title or "") + " Description: " + (job.description or "") + " Steps: " + str(job.steps or [])
 
         history = [
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=jd)]
-            )
+            {"role": "user", "content": jd}
         ]
 
-        iter_count = 0
-        max_iterations = 20
-        step_results = [] 
-
-        while iter_count < max_iterations:
-            iter_count += 1
+        def log_tool_result(tool_name, tool_args, tool_result, step_index):
             try:
-                response = agent.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=history,
-                    config=types.GenerateContentConfig(
-                        tools=[tools],
-                        system_instruction=system_prompt
-                    )
+                JobTaskLog.objects.create(
+                    job=job,
+                    step_index=step_index,
+                    tool_name=tool_name,
+                    args=tool_args,
+                    response=tool_result,
+                    success=(tool_result.get("status") != "error"),
+                    error_message=tool_result.get("message", "")
+                    if tool_result.get("status") == "error"
+                    else "",
+                )
+            except Exception:
+                job.logs = (job.logs or "") + (
+                    f"\nWarning: failed to write JobTaskLog for step {step_index}"
                 )
 
-                if response.function_calls:
-                    for function_call in response.function_calls:
-                        tool_name = function_call.name
-                        tool_args = {k: v for k, v in function_call.args.items()} if function_call.args else {}
-                        tool_args["user_id"] = user.id
+        try:
+            agent_result = run_openai_tool_agent(
+                messages=history,
+                system_prompt=system_prompt,
+                tool_schemas=TOOL_SCHEMAS,
+                tool_registry=TOOL_REGISTRY,
+                user_id=user.id,
+                max_iterations=20,
+                on_tool_result=log_tool_result,
+            )
+            step_results = agent_result["tool_results"]
+            iter_count = agent_result["iterations"]
 
-                        tool_function = TOOL_REGISTRY.get(tool_name)
-                        if not tool_function:
-                            tool_result = {"status": "error", "message": f"Tool '{tool_name}' not found."}
-                        else:
-                            try:
-                                raw_tool_result = tool_function(**tool_args)
-                                if isinstance(raw_tool_result, dict):
-                                    tool_result = raw_tool_result
-                                else:
-                                    try:
-                                        parsed = json.loads(raw_tool_result)
-                                        tool_result = parsed if isinstance(parsed, dict) else {"raw": raw_tool_result}
-                                    except Exception:
-                                        tool_result = {"raw": str(raw_tool_result)}
-                            except Exception as e:
-                                tool_result = {
-                                    "status": "error",
-                                    "message": f"Tool execution error: {str(e)}",
-                                }
+        except Exception as e:
+            job.retries = job.retries + 1
+            if job.retries <= job.max_retries:
+                backoff_seconds = 60 * (2 ** (job.retries - 1))
+                job.status = "SCHEDULED"
+                job.scheduled_at = timezone.now() + timedelta(seconds=backoff_seconds)
+                job.save()
+                execute_job.apply_async(args=[str(job.id)], eta=job.scheduled_at)
+                return {"retrying": True, "next_try_at": job.scheduled_at.isoformat()}
+            else:
+                job.status = "FAILED"
+                job.finished_at = timezone.now()
+                job.logs = (job.logs or "") + f"\nModel error after retries: {str(e)}\n{traceback.format_exc()}"
+                job.save()
+                return {"error": str(e)}
 
-                        function_response_part = types.Part.from_function_response(
-                            name=function_call.name,
-                            response=tool_result,
-                        )
-                        function_response_content = types.Content(role="tool", parts=[function_response_part])
-                        history.append(function_response_content)
-
-                        try:
-                            JobTaskLog.objects.create(
-                                job=job,
-                                step_index=len(step_results),
-                                tool_name=tool_name,
-                                args=tool_args,
-                                response=tool_result,
-                                success=(tool_result.get("status") != "error"),
-                                error_message=tool_result.get("message", "") if tool_result.get("status") == "error" else ""
-                            )
-                        except Exception:
-                            job.logs = (job.logs or "") + f"\nWarning: failed to write JobTaskLog for step {len(step_results)}"
-
-                        if not isinstance(tool_result, dict):
-                            try:
-                                tool_result = json.loads(tool_result)
-                            except Exception:
-                                tool_result = {"raw": str(tool_result)}
-                        step_results.append(tool_result)
-
-                        if tool_name == "complete":
-                            break
-
-                    continue
-                else:
-                    break
-
-            except Exception as e:
-                job.retries = job.retries + 1
-                if job.retries <= job.max_retries:
-                    backoff_seconds = 60 * (2 ** (job.retries - 1))
-                    job.status = "SCHEDULED"
-                    job.scheduled_at = timezone.now() + timedelta(seconds=backoff_seconds)
-                    job.save()
-                    execute_job.apply_async(args=[str(job.id)], eta=job.scheduled_at)
-                    return {"retrying": True, "next_try_at": job.scheduled_at.isoformat()}
-                else:
-                    job.status = "FAILED"
-                    job.finished_at = timezone.now()
-                    job.logs = (job.logs or "") + f"\nModel error after retries: {str(e)}\n{traceback.format_exc()}"
-                    job.save()
-                    return {"error": str(e)}
 
         job.status = "SUCCEEDED"
         job.finished_at = timezone.now()

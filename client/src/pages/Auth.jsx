@@ -28,8 +28,8 @@ export default function Auth() {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
     console.log(API_BASE);
-    const signupUrl = `${API_BASE}/auth/register/`
-    const loginUrl = `${API_BASE}/auth/login/`
+    const signupUrl = `${API_BASE}auth/register/`
+    const loginUrl = `${API_BASE}auth/login/`
     const navigate = useNavigate();
 
 

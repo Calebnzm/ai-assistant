@@ -14,14 +14,13 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from googleapiclient.discovery import build
 
-from google import genai
-from google.genai import types
 from googleapiclient.errors import HttpError
 
 User = get_user_model()
 from GoogleAuth.models import GoogleCredential
 from GoogleAuth.utils import get_credentials_for_user
 from chats.views import ConversationAPIView
+from tools.openai_runner import run_openai_tool_agent
 from tools.tool_registry import fetch_schemas, fetch_tools
 from chats.models import Conversation
 
@@ -356,91 +355,27 @@ def pubsub_gmail_push(request):
         After completing all actions satisfactorily, inform the user of email, task, actions taken, and results in brief.
         """
 
-        agent = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         tier = "complete"
         services = ["in_app", "gmail", "calendar"]
         TOOL_SCHEMAS = fetch_schemas(tier=tier, services=services)
         TOOL_REGISTRY = fetch_tools(tier=tier, services=services)
-        tools = types.Tool(function_declarations=TOOL_SCHEMAS)
 
         history = [
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=all_messages_text)]
-            )
+            {"role": "user", "content": all_messages_text}
         ]
-        iter_count = 0
-        max_iterations = 20
 
+        try:
+            run_openai_tool_agent(
+                messages=history,
+                system_prompt=system_prompt,
+                tool_schemas=TOOL_SCHEMAS,
+                tool_registry=TOOL_REGISTRY,
+                user_id=user.id,
+                max_iterations=20,
+            )
+        except Exception as e:
+            print(f"An error occured: {str(e)}")
 
-        while iter_count < max_iterations:
-            iter_count += 1
-
-            try: 
-                response = agent.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=history,
-                    config=types.GenerateContentConfig(
-                        tools=[tools],
-                        system_instruction=system_prompt
-                    )
-                )
-
-                if response.function_calls:
-                    for function_call in response.function_calls:
-                        tool_name = function_call.name
-                        tool_args = {key: value for key, value in function_call.args.items()}
-                        tool_args["user_id"] = user.id
-
-
-                        tool_function = TOOL_REGISTRY.get(tool_name)
-                        if not tool_function:
-                            tool_result = {"error": f"Tool '{tool_name}' not found."}
-                        
-                        else:
-                            try:
-                                tool_result = tool_function(**tool_args)
-
-                            except ValueError as e:
-                                tool_result = {
-                                    "status": "error",
-                                    "error_type": "VALIDATION_ERROR",
-                                    "message": "One of the provided arguments has an invalid format.",
-                                    "details": str(e)
-                                }
-                                
-                            except TypeError as e:
-                                tool_result = {
-                                    "status": "error",
-                                    "error_type": "ARGUMENT_ERROR",
-                                    "message": "Missing or incorrect arguments for the tool.",
-                                    "details": str(e)
-                                }
-                                
-                            except Exception as e:
-                                tool_result = {"error": f"An unexpected error occurred: {e}"}
-
-                        if not isinstance(tool_result, dict):
-                            tool_result = json.loads(tool_result)
-                        function_response_part = types.Part.from_function_response(
-                            name=function_call.name,
-                            response=tool_result,
-                        )
-                        function_response_content = types.Content(
-                            role='tool', parts=[function_response_part]
-                        )
-                        history.append(function_response_content)
-
-                        if tool_name == "complete":
-                            break
-
-                    continue
-                else:
-                    break
-
-
-            except Exception as e:
-                print(f"An error occured: {str(e)}")
 
 
     threading.Thread(target=handle_update, daemon=True).start()

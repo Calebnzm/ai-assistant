@@ -38,7 +38,6 @@ from .google_drive.tools import (
     get_drive_file_permissions,
     check_drive_file_public_access,
 )
-from google.generativeai import types
 from typing import List, Dict, Callable, Any
 
 

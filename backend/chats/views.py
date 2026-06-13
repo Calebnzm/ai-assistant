@@ -1,5 +1,3 @@
-from google import genai
-from google.genai import types
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -8,9 +6,8 @@ from .serializers import ConversationSerializer
 from django.utils import timezone
 from datetime import timedelta
 from dotenv import load_dotenv
-import json
+from tools.openai_runner import conversation_to_openai_messages, run_openai_tool_agent
 from tools.tool_registry import fetch_schemas, fetch_tools, TOOL_CONFIG
-import os
 
 load_dotenv()
 
@@ -69,88 +66,23 @@ class ConversationAPIView(APIView):
 
         ChatMessage.objects.create(conversation=conversation, role="user", content=message)
 
-        history = [
-            {"role": msg.role, "parts": [{"text": msg.content}]}
-            for msg in conversation.messages.all().order_by("created_at")
-        ]
+        history = conversation_to_openai_messages(
+            conversation.messages.all().order_by("created_at")
+        )
 
-        agent = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
         tier = "core"
         services = ["in_app", "gmail", "google_docs", "google_drive", "calendar"]
         TOOL_SCHEMAS = fetch_schemas(tier=tier, services=services)
         TOOL_REGISTRY = fetch_tools(tier=tier, services=services)
-        tools = types.Tool(function_declarations=TOOL_SCHEMAS)
 
-        response = agent.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=history,
-            config=types.GenerateContentConfig(
-                tools=[tools],
-                system_instruction=system_prompt
-            )
+        response = run_openai_tool_agent(
+            messages=history,
+            system_prompt=system_prompt,
+            tool_schemas=TOOL_SCHEMAS,
+            tool_registry=TOOL_REGISTRY,
+            user_id=user.id,
         )
-
-        while True:
-
-            if response.function_calls:
-                for function_call in response.function_calls:
-                    tool_name = function_call.name
-                    tool_args = {key: value for key, value in function_call.args.items()}
-                    tool_args["user_id"] = user.id
-
-
-                    tool_function = TOOL_REGISTRY.get(tool_name)
-                    if not tool_function:
-                        return Response({"error": f"Tool '{tool_name}' not found."}, status=404)
-                    
-                    try:
-                        tool_result = tool_function(**tool_args)
-
-                    except ValueError as e:
-                        tool_result = {
-                            "status": "error",
-                            "error_type": "VALIDATION_ERROR",
-                            "message": "One of the provided arguments has an invalid format.",
-                            "details": str(e)
-                        }
-                        
-                    except TypeError as e:
-                        tool_result = {
-                            "status": "error",
-                            "error_type": "ARGUMENT_ERROR",
-                            "message": "Missing or incorrect arguments for the tool.",
-                            "details": str(e)
-                        }
-                        
-                    except Exception as e:
-                        tool_result = {"error": f"An unexpected error occurred: {e}"}
-                    if not isinstance(tool_result, dict):
-                        tool_result = json.loads(tool_result)
-                    print(tool_result)
-                    function_response_part = types.Part.from_function_response(
-                        name=function_call.name,
-                        response=tool_result,
-                    )
-                    function_response_content = types.Content(
-                        role='tool', parts=[function_response_part]
-                    )
-                    history.append(function_response_content)
-
-                response = agent.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=history,
-                    config=types.GenerateContentConfig(
-                        tools=[tools],
-                        system_instruction=system_prompt
-                    )
-                )
-
-                continue
-            else:
-                break
-
-        print(response.text)
-        assistant_message = response.text
+        assistant_message = response["content"]
         ChatMessage.objects.create(conversation=conversation, role="model", content=assistant_message)
 
         conversation.refresh_expiry(timeout=timeout_seconds)
