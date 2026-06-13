@@ -4,6 +4,7 @@ import pgvector.django.indexes
 import pgvector.django.vector
 from django.conf import settings
 from django.db import migrations
+from pgvector.django import VectorExtension
 
 
 class Migration(migrations.Migration):
@@ -14,6 +15,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        VectorExtension(),
         migrations.AddField(
             model_name='task',
             name='embedding',

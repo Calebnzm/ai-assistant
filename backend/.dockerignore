@@ -1,0 +1,16 @@
+# Local environments and secrets
+.env
+*.env
+
+# Python/build artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+celerybeat-schedule
+staticfiles/
+
+# VCS/editor files
+.git/
+.vscode/
