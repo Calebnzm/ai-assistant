@@ -1,0 +1,12 @@
+# Local environments and secrets
+.env
+*.env
+
+# Node/build artifacts
+node_modules/
+dist/
+dist-ssr/
+
+# VCS/editor files
+.git/
+.vscode/

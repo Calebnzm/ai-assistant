@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from "axios";
 import './styles.css';
 import { toast } from "sonner"
 import { Button } from "../*/components/ui/button"
@@ -8,7 +7,7 @@ import { Input } from "../*/components/ui/input"
 import { Label } from "../*/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../*/components/ui/card"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { API_BASE } from '../api';
+import api from '../api';
 
 
 import ErroMessage from '../components/ErrorMessage.jsx'
@@ -27,9 +26,6 @@ export default function Auth() {
     })
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-    console.log(API_BASE);
-    const signupUrl = `${API_BASE}auth/register/`
-    const loginUrl = `${API_BASE}auth/login/`
     const navigate = useNavigate();
 
 
@@ -105,7 +101,7 @@ export default function Auth() {
         password: formData.selectedPassword,
         };
 
-        axios.post(signupUrl, user)
+        api.post("auth/register/", user)
         .then(() => {
             toast.success("Succesfully Signed up. Kindly log in.");
             setHasAccount(true);
@@ -127,7 +123,7 @@ export default function Auth() {
         password: formData.password,
         };
 
-        axios.post(loginUrl, user_info)
+        api.post("auth/login/", user_info)
         .then(response => {
             localStorage.setItem("access", response.data.access);
             localStorage.setItem("refresh", response.data.refresh);
