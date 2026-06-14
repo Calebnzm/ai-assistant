@@ -1,12 +1,16 @@
 from django.db import models
 from django.conf import settings
 from datetime import date, timedelta
+from functools import lru_cache
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField
 from pgvector.django import VectorField, HnswIndex
 from sentence_transformers import SentenceTransformer
 
-embdedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+@lru_cache(maxsize=1)
+def _embedding_model() -> SentenceTransformer:
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
 
 class Task(models.Model):
@@ -62,7 +66,7 @@ class Task(models.Model):
 
         combined_text = ". ".join(parts)
 
-        return embdedding_model.encode(combined_text)
+        return _embedding_model().encode(combined_text)
     
     def save(self, *args, **kwargs):
         "Generate embeddings before saving task"
