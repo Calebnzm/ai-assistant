@@ -3,12 +3,10 @@ from tasks.models import Task
 from api.models import User
 from datetime import date, datetime
 from rest_framework.exceptions import ValidationError
-from sentence_transformers import SentenceTransformer
 from pgvector.django import CosineDistance
 from chats.models import Conversation, ChatMessage
 from django.utils import timezone
 from datetime import timedelta
-from functools import lru_cache
 import os, requests, json
 from django.utils.dateparse import parse_datetime
 from dotenv import load_dotenv
@@ -17,10 +15,7 @@ from jobs.models import Job
 
 load_dotenv()
 
-
-@lru_cache(maxsize=1)
-def _embedding_model() -> SentenceTransformer:
-    return SentenceTransformer("all-MiniLM-L6-v2")
+from tools.embeddings import embed_text
 
 def list_activity(user_id, start_date_str: str, end_date_str: str) -> list:
     "A tool to get the task list for a given date"
@@ -135,7 +130,7 @@ def search_activities(user_id, search_phrase: str) -> dict:
         if not search_phrase:
             return {"status": "error", "message": "A search parameter is required."}
         
-        search_phrase_embedding = _embedding_model().encode(search_phrase)
+        search_phrase_embedding = embed_text(search_phrase)
 
         tasks = (
             Task.objects.filter(user=user).annotate(

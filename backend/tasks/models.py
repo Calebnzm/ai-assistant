@@ -1,16 +1,10 @@
 from django.db import models
 from django.conf import settings
 from datetime import date, timedelta
-from functools import lru_cache
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField
 from pgvector.django import VectorField, HnswIndex
-from sentence_transformers import SentenceTransformer
-
-
-@lru_cache(maxsize=1)
-def _embedding_model() -> SentenceTransformer:
-    return SentenceTransformer("all-MiniLM-L6-v2")
+from tools.embeddings import embed_text
 
 
 class Task(models.Model):
@@ -66,11 +60,33 @@ class Task(models.Model):
 
         combined_text = ". ".join(parts)
 
-        return _embedding_model().encode(combined_text)
+        return embed_text(combined_text)
     
     def save(self, *args, **kwargs):
         "Generate embeddings before saving task"
-        self.embedding = self.generate_embedding()
+        recalculate_embedding = kwargs.pop("recalculate_embedding", True)
+
+        if recalculate_embedding:
+            should_recalculate = self.pk is None
+            if self.pk is not None:
+                previous = (
+                    Task.objects.filter(pk=self.pk)
+                    .values("title", "description", "tags", "embedding")
+                    .first()
+                )
+                if previous is None:
+                    should_recalculate = True
+                else:
+                    should_recalculate = (
+                        previous["embedding"] is None
+                        or previous["title"] != self.title
+                        or previous["description"] != self.description
+                        or previous["tags"] != self.tags
+                    )
+
+            if should_recalculate:
+                self.embedding = self.generate_embedding()
+
         super().save(*args, **kwargs)
 
     class Meta:
